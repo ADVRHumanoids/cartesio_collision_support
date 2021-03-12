@@ -135,8 +135,12 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
                                                            _ci_coll->getBoundScaling(),
                                                            _ci_coll->getSize()
                                                            );
-
-    _opensot_coll->setCollisionWhiteList(_ci_coll->getWhiteList());
+    // set whitelist if available
+    auto whitelist = _ci_coll->getWhiteList();
+    if(!whitelist.empty())
+    {
+        _opensot_coll->setCollisionWhiteList(whitelist);
+    }
 
     return _opensot_coll;
 }
