@@ -6,6 +6,9 @@
 #include <OpenSoT/tasks/velocity/CollisionRepulsiveField.h>
 #include <OpenSoT/constraints/velocity/SelfCollisionAvoidance.h>
 
+#include <urdf/model.h>
+#include <srdfdom/model.h>
+
 using CollisionTaskSoT = OpenSoT::tasks::velocity::CollisionRepulsiveField;
 using CollisionConstrSoT = OpenSoT::constraints::velocity::SelfCollisionAvoidance;
 
@@ -30,11 +33,17 @@ public:
 
     std::list<std::pair<std::string, std::string>> getWhiteList() const;
 
+    urdf::ModelConstSharedPtr getCollisionUrdf() const;
+    srdf::ModelConstSharedPtr getCollisionSrdf() const;
+
 private:
 
     std::list<std::pair<std::string, std::string>> _pairs;
     double _bound_scaling;
     double _min_dist;
+
+    urdf::ModelConstSharedPtr _coll_urdf;
+    srdf::ModelConstSharedPtr _coll_srdf;
 
 };
 

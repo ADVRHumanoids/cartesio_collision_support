@@ -28,7 +28,7 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
                                      Context::ConstPtr context):
     TaskDescriptionImpl(node, context, "collision_avoidance", get_size(node)),
     _bound_scaling(1.0),
-    _min_dist(0.0)
+    _min_dist(0.001)  // note: smth > 0 to avoid singular min distance segment
 {
     if(auto n = node["pairs"])
     {
@@ -46,6 +46,52 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
     if(auto n = node["distance_threshold"])
     {
         _min_dist = n.as<double>();
+    }
+
+    if(auto n = node["collision_urdf_path"])
+    {
+        // parse path via shell
+        auto urdf_path = XBot::Utils::computeAbsolutePathShell(n.as<std::string>());
+
+        // construct model shared ptr
+        auto urdf_mdl = new urdf::Model;
+        _coll_urdf.reset(urdf_mdl);
+
+        // if could not init, destroy it
+        if(!urdf_mdl->initFile(urdf_path))
+        {
+            Logger::error("could not load collision urdf from file '%s'\n",
+                          urdf_path.c_str());
+
+            _coll_urdf.reset();
+        }
+    }
+
+    if(auto n = node["collision_srdf_path"])
+    {
+        // parse path via shell
+        auto srdf_path = XBot::Utils::computeAbsolutePathShell(n.as<std::string>());
+
+        // construct model shared ptr
+        auto srdf_mdl = new srdf::Model;
+        _coll_srdf.reset(srdf_mdl);
+
+        // get urdf either from collision or from modelinterface
+        const urdf::ModelInterface* urdf = _coll_urdf.get();
+
+        if(!urdf)
+        {
+            urdf = &(context->model()->getUrdf());
+        }
+
+        // if cannot init, destroy
+        if(!srdf_mdl->initFile(*urdf, srdf_path))
+        {
+            Logger::error("could not load collision srdf from file '%s'\n",
+                          srdf_path.c_str());
+
+            _coll_srdf.reset();
+        }
     }
 }
 
@@ -69,6 +115,16 @@ double CollisionTaskImpl::getDistanceThreshold() const
 std::list<std::pair<std::string, std::string> > CollisionTaskImpl::getWhiteList() const
 {
     return _pairs;
+}
+
+urdf::ModelConstSharedPtr CollisionTaskImpl::getCollisionUrdf() const
+{
+    return _coll_urdf;
+}
+
+srdf::ModelConstSharedPtr CollisionTaskImpl::getCollisionSrdf() const
+{
+    return _coll_srdf;
 }
 
 OpenSotCollisionAdapter::OpenSotCollisionAdapter(TaskDescription::Ptr ci_task,
@@ -128,13 +184,19 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     Eigen::VectorXd q;
     _model->getJointPosition(q);
 
-    _opensot_coll = boost::make_shared<CollisionConstrSoT>(q,
-                                                           *_model,
-                                                           0.05, // hardcoded detection th
-                                                           _ci_coll->getDistanceThreshold(),
-                                                           _ci_coll->getBoundScaling(),
-                                                           _ci_coll->getSize()
-                                                           );
+    _opensot_coll = boost::make_shared<CollisionConstrSoT>(
+                        q,
+                        *_model,
+                        _ci_coll->getSize(),
+                        _ci_coll->getCollisionUrdf(),
+                        _ci_coll->getCollisionSrdf()
+                        );
+
+    // set parameters
+    _opensot_coll->setBoundScaling(_ci_coll->getBoundScaling());
+    _opensot_coll->setLinkPairThreshold(_ci_coll->getDistanceThreshold());
+    _opensot_coll->setDetectionThreshold(0.05);  // hardcoded!
+
     // set whitelist if available
     auto whitelist = _ci_coll->getWhiteList();
     if(!whitelist.empty())
