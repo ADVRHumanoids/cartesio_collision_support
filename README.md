@@ -2,7 +2,7 @@
 Collision avoidance support for CartesIO. A the moment, the support for collision avoidance is provided by means of
  - a collision avoidance task, named `CollisionTask`
  - a collision avoidance constraint, named `CollisionConstraint`
- - 
+
 Support for the first (task-based) version is experimental.
 
 ## How to include inside a stack file
