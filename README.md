@@ -14,6 +14,6 @@ Collision:
     lambda: 0.1  # only for task version
     max_pairs: 10  # maximum number of simultaneously active collisions
     distance_threshold: 0.01  # minimum distance between link pairs
-    pairs:  # list of all link pairs to be checked
+    pairs:  # list of all link pairs to be checked (all if omitted)
      - [ball1, ball2]
 ```
