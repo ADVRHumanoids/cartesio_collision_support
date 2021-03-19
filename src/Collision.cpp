@@ -127,6 +127,19 @@ srdf::ModelConstSharedPtr CollisionTaskImpl::getCollisionSrdf() const
     return _coll_srdf;
 }
 
+void CollisionTaskImpl::registerWorldUpdateCallback(WorldUpdateCallback f)
+{
+    _world_upd_cb.push_back(f);
+}
+
+void CollisionTaskImpl::worldUpdated(const moveit_msgs::PlanningSceneWorld& psw)
+{
+    for(auto& fn : _world_upd_cb)
+    {
+        fn(psw);
+    }
+}
+
 OpenSotCollisionAdapter::OpenSotCollisionAdapter(TaskDescription::Ptr ci_task,
                                                  Context::ConstPtr context):
     OpenSotTaskAdapter(ci_task, context)
@@ -204,6 +217,14 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
         _opensot_coll->setCollisionWhiteList(whitelist);
     }
 
+    // register world update function
+    auto on_world_upd = [this](const moveit_msgs::PlanningSceneWorld& psw)
+    {
+        _opensot_coll->setWorldCollisions(psw);
+    };
+
+    _ci_coll->registerWorldUpdateCallback(on_world_upd);
+
     return _opensot_coll;
 }
 
@@ -217,7 +238,59 @@ void OpenSotCollisionConstraintAdapter::processSolution(const Eigen::VectorXd &s
 
 }
 
+
+
+CollisionRos::CollisionRos(TaskDescription::Ptr task,
+                           RosContext::Ptr context):
+    TaskRos(task, context)
+{
+    _ci_coll = std::dynamic_pointer_cast<CollisionTaskImpl>(task);
+
+    if(!_ci_coll) throw std::runtime_error("Provided task description "
+                                           "does not have expected type 'CollisionTask'");
+
+    auto nh = ros::NodeHandle(context->nh().getNamespace() + "/" + task->getName());
+
+    _ps = std::make_unique<Planning::PlanningSceneWrapper>(_ci_coll->getModel(),
+                                                           _ci_coll->getCollisionUrdf(),
+                                                           _ci_coll->getCollisionSrdf(),
+                                                           nh);
+    _ps->startGetPlanningSceneServer();
+    _ps->startMonitor();
+
+
+
+
+    _world_upd_srv = nh.advertiseService("apply_planning_scene",
+                                         &CollisionRos::apply_planning_scene_service,
+                                         this);
+
+    registerType("Collision");
+
+}
+
+bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene::Request &req,
+                                                moveit_msgs::ApplyPlanningScene::Response &res)
+{
+    _ps->applyPlanningScene(req.scene);
+
+    _ci_coll->worldUpdated(req.scene.world);
+
+    res.success = true;
+
+    return true;
+}
+
+void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
+{
+    _ps->update();
+}
+
+
 CARTESIO_REGISTER_TASK_PLUGIN(CollisionTaskImpl, CollisionConstraint)
 CARTESIO_REGISTER_TASK_PLUGIN(CollisionTaskImpl, CollisionTask)
+CARTESIO_REGISTER_ROS_API_PLUGIN(CollisionRos, CollisionConstraint)
 CARTESIO_REGISTER_OPENSOT_TASK_PLUGIN(OpenSotCollisionAdapter, CollisionTask)
 CARTESIO_REGISTER_OPENSOT_CONSTR_PLUGIN(OpenSotCollisionConstraintAdapter, CollisionConstraint)
+
+
