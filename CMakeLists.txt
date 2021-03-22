@@ -26,3 +26,9 @@ add_executable(add_sphere examples/add_sphere.cpp)
 target_link_libraries(add_sphere
     cartesian_interface::CartesianInterface
     ${moveit_core_LIBRARIES})
+
+install(DIRECTORY examples/
+    DESTINATION share/${PROJECT_NAME}/examples)
+
+install(DIRECTORY launch/
+    DESTINATION share/${PROJECT_NAME}/launch)
