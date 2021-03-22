@@ -32,3 +32,6 @@ install(DIRECTORY examples/
 
 install(DIRECTORY launch/
     DESTINATION share/${PROJECT_NAME}/launch)
+
+install(FILES manifest.xml
+    DESTINATION share/${PROJECT_NAME})
