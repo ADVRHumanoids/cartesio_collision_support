@@ -30,11 +30,20 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
     _bound_scaling(1.0),
     _min_dist(0.001)  // note: smth > 0 to avoid singular min distance segment
 {
+
     if(auto n = node["pairs"])
     {
         for(auto p : n)
         {
             _pairs.push_back(p.as<std::pair<std::string, std::string>>());
+        }
+    }
+
+    if(auto n = node["env_collision_links"])
+    {
+        for(auto p : n)
+        {
+            _env_links.push_back(p.as<std::string>());
         }
     }
 
@@ -115,6 +124,11 @@ double CollisionTaskImpl::getDistanceThreshold() const
 std::list<std::pair<std::string, std::string> > CollisionTaskImpl::getWhiteList() const
 {
     return _pairs;
+}
+
+std::list<std::string> CollisionTaskImpl::getEnvironmentWhiteList() const
+{
+    return _env_links;
 }
 
 urdf::ModelConstSharedPtr CollisionTaskImpl::getCollisionUrdf() const
@@ -215,6 +229,13 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     if(!whitelist.empty())
     {
         _opensot_coll->setCollisionWhiteList(whitelist);
+    }
+
+    // set link-env collisions
+    auto env_whitelist = _ci_coll->getEnvironmentWhiteList();
+    if(!env_whitelist.empty())
+    {
+        _opensot_coll->setLinksVsEnvironment(env_whitelist);
     }
 
     // register world update function
