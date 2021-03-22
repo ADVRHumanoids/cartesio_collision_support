@@ -25,7 +25,7 @@ Collision:
     lib_name: libcartesio_collision_support.so
     bound_scaling: 0.1
     distance_threshold: 0.01
-    max_pairs: 10
+    max_pairs: 20
     collision_urdf_path: $(rospack find cogimon_urdf)/urdf/cogimon_capsules.rviz
     collision_srdf_path: $(rospack find cogimon_srdf)/srdf/cogimon_capsules.srdf
     # pairs:
