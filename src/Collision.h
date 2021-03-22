@@ -122,6 +122,7 @@ private:
     std::list<WorldUpdateCallback> _world_upd_cb;
 
     std::list<LinkPairDistance> _distance_list;
+
 };
 
 /**

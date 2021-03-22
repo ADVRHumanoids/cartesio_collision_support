@@ -104,6 +104,8 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
             _coll_srdf.reset();
         }
     }
+
+
 }
 
 void CollisionTaskImpl::setLinkPairDistances(const std::list<LinkPairDistance>& distance_list)
@@ -277,8 +279,7 @@ void OpenSotCollisionConstraintAdapter::processSolution(const Eigen::VectorXd &s
 
 CollisionRos::CollisionRos(TaskDescription::Ptr task,
                            RosContext::Ptr context):
-    TaskRos(task, context),
-    _visualize_distances(true)
+    TaskRos(task, context)
 {
     _ci_coll = std::dynamic_pointer_cast<CollisionTaskImpl>(task);
 
@@ -295,6 +296,7 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
     _ps->startMonitor();
 
 
+    _visualize_distances = nh.param("visulize_distances", true);
 
 
     _world_upd_srv = nh.advertiseService("apply_planning_scene",
