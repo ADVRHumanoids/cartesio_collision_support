@@ -1,0 +1,87 @@
+solver_options:
+    regularization: 1e-9
+    back_end: qpoases
+    front_end: ihqp
+
+stack:
+    -
+      - LeftArm
+      - RightArm
+      - Com
+      - LeftFoot
+      - RightFoot
+      - Postural
+
+constraints: [JointLimits, VelocityLimits, Collision]
+
+JointLimits:
+    type: JointLimits
+
+VelocityLimits:
+    type: VelocityLimits
+
+Collision:
+    type: CollisionConstraint
+    lib_name: libcartesio_collision_support.so
+    bound_scaling: 0.1
+    distance_threshold: 0.01
+    max_pairs: 10
+    collision_urdf_path: $(rospack find cogimon_urdf)/urdf/cogimon_capsules.rviz
+    collision_srdf_path: $(rospack find cogimon_srdf)/srdf/cogimon_capsules.srdf
+    # pairs:
+    #  - [ball1, ball2]
+    #  - [wheel_1, wheel_2]
+    #  - [hip1_2, arm1_4]
+    #  - [knee_1, arm1_4]
+    #  - [hip1_2, arm1_5]
+    #  - [knee_1, arm1_5]
+    #  - [hip2_1, arm1_6]
+    #  - [knee_1, arm1_6]
+    #  - [hip2_1, ball1]
+    #  - [knee_1, ball1]
+    #  - [wheel_1, ball1]
+    #  - [wheel_1, arm1_6]
+
+Waist:
+    type: Cartesian
+    distal_link: pelvis
+    base_link: world
+    lambda: 0.1
+    weight: 1000.0
+
+LeftArm:
+    type: Cartesian
+    distal_link: l_ball_tip
+    base_link: world
+    lambda: 0.1
+    indices: [0, 1, 2]
+
+RightArm:
+    type: Cartesian
+    distal_link: r_ball_tip
+    base_link: world
+    lambda: 0.1
+    indices: [0, 1, 2]
+
+LeftFoot:
+    type: Cartesian
+    distal_link: l_sole
+    base_link: world
+    lambda: 0.1
+
+RightFoot:
+    type: Cartesian
+    distal_link: r_sole
+    base_link: world
+    lambda: 0.1
+
+Postural:
+    type: Postural
+    lambda: 0.01
+    weight: 0.001
+
+Com:
+    type: Com
+    lambda: 0.1
+    indices: [0, 1]
+    weight: 1
