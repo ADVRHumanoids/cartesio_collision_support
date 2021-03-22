@@ -13,9 +13,13 @@
 #include "planning_scene/planning_scene_wrapper.h"
 #include <moveit_msgs/ApplyPlanningScene.h>
 
+#include <visualization_msgs/Marker.h>
+
 using CollisionTaskSoT = OpenSoT::tasks::velocity::CollisionRepulsiveField;
 using CollisionConstrSoT = OpenSoT::constraints::velocity::SelfCollisionAvoidance;
 
+
+class LinkPairDistance;
 
 namespace XBot { namespace Cartesian { namespace collision {
 
@@ -96,6 +100,9 @@ public:
      */
     void worldUpdated(const moveit_msgs::PlanningSceneWorld& psw);
 
+    void setLinkPairDistances(const std::list<LinkPairDistance>& distance_list);
+    const std::list<LinkPairDistance>& getLinkPairDistances();
+
 private:
 
     std::list<std::pair<std::string, std::string>> _pairs;
@@ -107,6 +114,7 @@ private:
 
     std::list<WorldUpdateCallback> _world_upd_cb;
 
+    std::list<LinkPairDistance> _distance_list;
 };
 
 /**
@@ -125,6 +133,8 @@ public:
 
     void run(ros::Time time) override;
 
+    void setVisualizeDistances(const bool flag);
+
 private:
 
     bool apply_planning_scene_service(moveit_msgs::ApplyPlanningScene::Request& req,
@@ -135,6 +145,10 @@ private:
     ros::ServiceServer _world_upd_srv;
 
     std::unique_ptr<Planning::PlanningSceneWrapper> _ps;
+
+    bool _visualize_distances;
+
+    ros::Publisher _vis_pub;
 
 };
 

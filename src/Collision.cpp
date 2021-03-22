@@ -1,5 +1,7 @@
 #include "Collision.h"
 #include <boost/make_shared.hpp>
+#include <OpenSoT/utils/collision_utils.h>
+
 
 using namespace XBot::Cartesian;
 using namespace XBot::Cartesian::collision;
@@ -93,6 +95,16 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
             _coll_srdf.reset();
         }
     }
+}
+
+void CollisionTaskImpl::setLinkPairDistances(const std::list<LinkPairDistance>& distance_list)
+{
+    _distance_list = distance_list;
+}
+
+const std::list<LinkPairDistance>& CollisionTaskImpl::getLinkPairDistances()
+{
+    return _distance_list;
 }
 
 bool CollisionTaskImpl::validate()
@@ -231,6 +243,8 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
 void OpenSotCollisionConstraintAdapter::update(double time, double period)
 {
     OpenSotConstraintAdapter::update(time, period);
+
+    _ci_coll->setLinkPairDistances(_opensot_coll->getLinkPairDistances());
 }
 
 void OpenSotCollisionConstraintAdapter::processSolution(const Eigen::VectorXd &solution)
@@ -242,7 +256,8 @@ void OpenSotCollisionConstraintAdapter::processSolution(const Eigen::VectorXd &s
 
 CollisionRos::CollisionRos(TaskDescription::Ptr task,
                            RosContext::Ptr context):
-    TaskRos(task, context)
+    TaskRos(task, context),
+    _visualize_distances(true)
 {
     _ci_coll = std::dynamic_pointer_cast<CollisionTaskImpl>(task);
 
@@ -267,6 +282,13 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
 
     registerType("Collision");
 
+    _vis_pub = nh.advertise<visualization_msgs::Marker>( "collision_distances", 0 );
+
+}
+
+void CollisionRos::setVisualizeDistances(const bool flag)
+{
+    _visualize_distances = flag;
 }
 
 bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene::Request &req,
@@ -284,6 +306,32 @@ bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene:
 void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
 {
     _ps->update();
+    if(_visualize_distances)
+    {
+        std::list<LinkPairDistance> distance_list = _ci_coll->getLinkPairDistances();
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "base_link";
+        marker.header.stamp = ros::Time();
+        marker.id = 0;
+        marker.type = visualization_msgs::Marker::LINE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        for(const auto& data : distance_list)
+        {
+            auto k2p = [](const KDL::Vector &k)->geometry_msgs::Point{
+                geometry_msgs::Point p;
+                p.x = k[0]; p.y = k[1]; p.z = k[2];
+                return p;
+            };
+
+            // closest point on first link
+            marker.points.push_back(k2p(data.getClosestPoints().first.p));
+            // closest point on second link
+            marker.points.push_back(k2p(data.getClosestPoints().second.p));
+        }
+        _vis_pub.publish(marker);
+    }
 }
 
 
