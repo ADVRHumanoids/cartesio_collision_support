@@ -332,11 +332,25 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
         std::list<LinkPairDistance> distance_list = _ci_coll->getLinkPairDistances();
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "base_link";
-        marker.header.stamp = ros::Time();
+        marker.header.frame_id = "ci/world";
+        marker.header.stamp = ros::Time().now();
         marker.id = 0;
         marker.type = visualization_msgs::Marker::LINE_LIST;
         marker.action = visualization_msgs::Marker::ADD;
+        marker.pose.position.x = 0.;
+        marker.pose.position.y = 0.;
+        marker.pose.position.z = 0.;
+        marker.pose.orientation.x = 0.;
+        marker.pose.orientation.y = 0.;
+        marker.pose.orientation.z = 0.;
+        marker.pose.orientation.w = 1.;
+        marker.color.r = 0.;
+        marker.color.g = 1.;
+        marker.color.b = 0.;
+        marker.color.a = 1.;
+        marker.scale.x = 0.005;
+        marker.scale.y = 0.;
+        marker.scale.z = 0.;
 
         for(const auto& data : distance_list)
         {
@@ -345,6 +359,8 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
                 p.x = k[0]; p.y = k[1]; p.z = k[2];
                 return p;
             };
+
+
 
             // closest point on first link
             marker.points.push_back(k2p(data.getClosestPoints().first.p));
