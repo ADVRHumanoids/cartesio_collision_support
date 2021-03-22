@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 
         req.scene.world.collision_objects = {co};
     }
-    else
+    else if(argc == 6)
     {
 
         shape_msgs::SolidPrimitive solid;
@@ -61,8 +61,29 @@ int main(int argc, char** argv)
         req.scene.world.collision_objects = {co};
 
     }
+    else if(argc == 8)
+    {
 
-    std::cout << req << std::endl;
+        shape_msgs::SolidPrimitive solid;
+        solid.type = solid.BOX;
+        solid.dimensions = { std::atof(argv[1]), std::atof(argv[2]), std::atof(argv[3]) };
+
+        geometry_msgs::Pose pose;
+        pose.orientation.w = 1.0;
+        pose.position.x = std::atof(argv[4]);
+        pose.position.y = std::atof(argv[5]);
+        pose.position.z = std::atof(argv[6]);
+
+        moveit_msgs::CollisionObject co;
+        co.header.frame_id = "world";
+        co.operation = co.ADD;
+        co.id = argv[7];
+        co.primitives = {solid};
+        co.primitive_poses = {pose};
+
+        req.scene.world.collision_objects = {co};
+
+    }
 
     moveit_msgs::ApplyPlanningScene::Response res;
     srv.call(req, res);
