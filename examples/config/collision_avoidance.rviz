@@ -4,6 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /RobotModel1
+        - /RobotModel1/Links1
+        - /RobotModel1/Links1/DWYTorso1
         - /PlanningScene1
         - /PlanningScene1/Scene Robot1
       Splitter Ratio: 0.5
@@ -52,301 +55,318 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Alpha: 1
+    - Alpha: 0.699999988079071
       Class: rviz/RobotModel
-      Collision Enabled: false
+      Collision Enabled: true
       Enabled: true
       Links:
-        All Links Enabled: true
+        All Links Enabled: false
+        DWL:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        DWLExt:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        DWYTorso:
+          Alpha: 1
+          Show Axes: true
+          Show Trail: false
+          Value: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
+        Head:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        HeadHokuyo:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        HokuyoLaser:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LBall:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LElb:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LFoot:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LFootmot:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LForearm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LHipMot:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LLowLeg:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LShp:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LShr:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LShy:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LThighLowLeg:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LThighUpLeg:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LWrMot2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
+        LWrMot3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: false
         Link Tree Style: Links in Alphabetic Order
-        ankle1_1:
+        RBall:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        ankle1_2:
+          Value: false
+        RElb:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        ankle1_3:
+          Value: false
+        RFoot:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        ankle1_4:
+          Value: false
+        RFootmot:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        ankle2_1:
+          Value: false
+        RForearm:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        ankle2_2:
+          Value: false
+        RHipMot:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        ankle2_3:
+          Value: false
+        RLowLeg:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        ankle2_4:
+          Value: false
+        RShp:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm1_1:
+          Value: false
+        RShr:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm1_2:
+          Value: false
+        RShy:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm1_3:
+          Value: false
+        RThighLowLeg:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm1_4:
+          Value: false
+        RThighUpLeg:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm1_5:
+          Value: false
+        RWrMot2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm1_6:
+          Value: false
+        RWrMot3:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm1_7:
+          Value: false
+        TCP_L:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm1_8:
+        TCP_R:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        arm2_1:
+        Waist:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        arm2_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        arm2_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        arm2_4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        arm2_5:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        arm2_6:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        arm2_7:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        arm2_8:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        ball1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        ball1_tip:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        ball2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        ball2_tip:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
+          Value: false
         base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        contact_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        contact_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        contact_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        contact_4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        ft_arm1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        ft_arm2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        hip1_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hip1_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hip1_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hip1_4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hip2_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hip2_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hip2_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        hip2_4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         imu_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        knee_1:
+          Value: false
+        l_ankle:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        knee_2:
+        l_arm_ft:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        knee_3:
+        l_ball_tip:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        knee_4:
+        l_foot_lower_left_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        neck_1:
+        l_foot_lower_right_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        neck_2:
+        l_foot_upper_left_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        neck_3:
+        l_foot_upper_right_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        pelvis:
+        l_heel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        torso_2:
+        l_leg_ft:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        wheel_1:
+        l_sole:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        wheel_2:
+        l_toe:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        wheel_3:
+        l_wrist:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        wheel_4:
+        r_ankle:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+        r_arm_ft:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_ball_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_foot_lower_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_foot_lower_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_foot_upper_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_foot_upper_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_heel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_leg_ft:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_sole:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_toe:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_wrist:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        torso:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         world:
           Alpha: 1
           Show Axes: false
           Show Trail: false
       Name: RobotModel
-      Robot Description: robot_description
+      Robot Description: robot_description_capsules
       TF Prefix: ci
       Update Interval: 0
       Value: true
       Visual Enabled: true
     - Class: moveit_rviz_plugin/PlanningScene
-      Enabled: true
+      Enabled: false
       Move Group Namespace: cartesian/collision_avoidance
       Name: PlanningScene
       Planning Scene Topic: /cartesian/collision_avoidance/monitored_planning_scene
@@ -366,287 +386,10 @@ Visualization Manager:
           Expand Link Details: false
           Expand Tree: false
           Link Tree Style: Links in Alphabetic Order
-          ankle1_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ankle1_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ankle1_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ankle1_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ankle2_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ankle2_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ankle2_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ankle2_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm1_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm1_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm1_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm1_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm1_5:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm1_6:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm1_7:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm1_8:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          arm2_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm2_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm2_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm2_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm2_5:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm2_6:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm2_7:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          arm2_8:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          ball1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ball1_tip:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          ball2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ball2_tip:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          contact_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          contact_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          contact_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          contact_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          ft_arm1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          ft_arm2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          hip1_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          hip1_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          hip1_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          hip1_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          hip2_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          hip2_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          hip2_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          hip2_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          imu_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          knee_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          knee_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          knee_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          knee_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          neck_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          neck_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          neck_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          pelvis:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          torso_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          wheel_1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          wheel_2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          wheel_3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          wheel_4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          world:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
         Robot Alpha: 1
         Show Robot Collision: true
-        Show Robot Visual: false
-      Value: true
+        Show Robot Visual: true
+      Value: false
     - Class: rviz/InteractiveMarkers
       Enable Transparency: true
       Enabled: true
@@ -684,25 +427,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.655264377593994
+      Distance: 2.168422222137451
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 0.08351409435272217
+        Y: 0.06357675790786743
+        Z: -0.42755207419395447
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.0853983536362648
+      Pitch: 0.98539799451828
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.11540184915065765
+      Yaw: 4.688588619232178
     Saved: ~
 Window Geometry:
   Displays:
