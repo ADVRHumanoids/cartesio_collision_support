@@ -4,8 +4,7 @@
 #include <cartesian_interface/sdk/problem/Task.h>
 #include <cartesian_interface/sdk/ros/server_api/TaskRos.h>
 #include <cartesian_interface/sdk/opensot/OpenSotTask.h>
-#include <OpenSoT/tasks/velocity/CollisionRepulsiveField.h>
-#include <OpenSoT/constraints/velocity/SelfCollisionAvoidance.h>
+#include <OpenSoT/constraints/velocity/CollisionAvoidance.h>
 
 #include <urdf/model.h>
 #include <srdfdom/model.h>
@@ -15,8 +14,7 @@
 
 #include <visualization_msgs/Marker.h>
 
-using CollisionTaskSoT = OpenSoT::tasks::velocity::CollisionRepulsiveField;
-using CollisionConstrSoT = OpenSoT::constraints::velocity::SelfCollisionAvoidance;
+using CollisionConstrSoT = OpenSoT::constraints::velocity::CollisionAvoidance;
 
 
 class LinkPairDistance;
@@ -194,33 +192,6 @@ private:
 
 };
 
-class OpenSotCollisionAdapter :
-        public OpenSotTaskAdapter
-{
-
-public:
-
-    OpenSotCollisionAdapter(TaskDescription::Ptr ci_task,
-                            Context::ConstPtr context);
-
-    OpenSoT::OptvarHelper::VariableVector getRequiredVariables() const override;
-
-    virtual TaskPtr constructTask() override;
-
-    virtual void update(double time, double period) override;
-
-    virtual void processSolution(const Eigen::VectorXd& solution) override;
-
-protected:
-
-    CollisionTaskSoT::Ptr _opensot_coll;
-
-private:
-
-    CollisionTaskImpl::Ptr _ci_coll;
-    Eigen::VectorXd _x;
-
-};
 
 
 

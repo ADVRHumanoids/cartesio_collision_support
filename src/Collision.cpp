@@ -168,43 +168,8 @@ void CollisionTaskImpl::worldUpdated(const moveit_msgs::PlanningSceneWorld& psw)
     }
 }
 
-OpenSotCollisionAdapter::OpenSotCollisionAdapter(TaskDescription::Ptr ci_task,
-                                                 Context::ConstPtr context):
-    OpenSotTaskAdapter(ci_task, context)
-{
-    _ci_coll = std::dynamic_pointer_cast<CollisionTaskImpl>(ci_task);
-    if(!_ci_coll) throw std::runtime_error("Provided task description "
-                                           "does not have expected type 'CollisionTask'");
-}
 
-OpenSoT::OptvarHelper::VariableVector OpenSotCollisionAdapter::getRequiredVariables() const
-{
-    return {};
-}
 
-TaskPtr OpenSotCollisionAdapter::constructTask()
-{
-    Eigen::VectorXd q;
-    _model->getJointPosition(q);
-
-    _opensot_coll = boost::make_shared<CollisionTaskSoT>(q,
-                                                         *_model,
-                                                         _ci_coll->getSize());
-
-    _opensot_coll->setWhiteList(_ci_coll->getWhiteList());
-
-    return _opensot_coll;
-}
-
-void OpenSotCollisionAdapter::update(double time, double period)
-{
-    OpenSotTaskAdapter::update(time, period);
-}
-
-void OpenSotCollisionAdapter::processSolution(const Eigen::VectorXd &solution)
-{
-
-}
 
 OpenSotCollisionConstraintAdapter::OpenSotCollisionConstraintAdapter(ConstraintDescription::Ptr ci_task,
                                                                      Context::ConstPtr context):
@@ -377,7 +342,6 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
 CARTESIO_REGISTER_TASK_PLUGIN(CollisionTaskImpl, CollisionConstraint)
 CARTESIO_REGISTER_TASK_PLUGIN(CollisionTaskImpl, CollisionTask)
 CARTESIO_REGISTER_ROS_API_PLUGIN(CollisionRos, CollisionConstraint)
-CARTESIO_REGISTER_OPENSOT_TASK_PLUGIN(OpenSotCollisionAdapter, CollisionTask)
 CARTESIO_REGISTER_OPENSOT_CONSTR_PLUGIN(OpenSotCollisionConstraintAdapter, CollisionConstraint)
 
 
