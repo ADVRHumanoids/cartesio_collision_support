@@ -1,6 +1,7 @@
 #include "Collision.h"
 #include <boost/make_shared.hpp>
-#include <OpenSoT/utils/LinkPairDistance.h>
+#include <OpenSoT/utils/collision_utils.h>
+
 
 using namespace XBot::Cartesian;
 using namespace XBot::Cartesian::collision;

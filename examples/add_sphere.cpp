@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 
     ros::ServiceClient srv;
 
-    srv = node_handle.serviceClient<moveit_msgs::ApplyPlanningScene>("apply_planning_scene");
+    srv = node_handle.serviceClient<moveit_msgs::ApplyPlanningScene>("cartesian/collision_avoidance/apply_planning_scene");
 
     srv.waitForExistence();
 
