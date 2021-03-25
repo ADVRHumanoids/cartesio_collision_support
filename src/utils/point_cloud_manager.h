@@ -1,28 +1,17 @@
+#include <ros/ros.h>
+
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/filters/passthrough.h>
-#include <geometry_msgs/Point.h>
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <pcl/ModelCoefficients.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/PointIndices.h>
-#include <pcl/features/integral_image_normal.h>
 #include <pcl/io/io.h>
-#include <pcl/io/pcd_io.h>
-#include <ros/ros.h>
-#include <tf/tf.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
-#include <tf/transform_datatypes.h>
-#include <tf_conversions/tf_eigen.h>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
-#include <geometry_msgs/PoseStamped.h>
+
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/robot_state/robot_state.h>
+#include <moveit/robot_state/conversions.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+
+#include <octomap_msgs/OctomapWithPose.h>
+#include <moveit_msgs/ApplyPlanningScene.h>
 
 namespace XBot { namespace Planning {
 
@@ -31,16 +20,26 @@ class PointCloudManager {
 public:
     
     PointCloudManager ( ros::NodeHandle& nh);
+    
+    void generatePointCloud();
+    
+    void callback(const octomap_msgs::OctomapPtr& msg);
+    
+    void sendPlanningScene();
 
-    pcl::PointCloud< pcl::PointXYZ > getPointCloud();
+    pcl::PointCloud< pcl::PointXYZ > getPointCloud() const;
 
 
 private:
     
     ros::NodeHandle _nh;
     ros::Subscriber _sub;
-    ros::Publisher _pub;
+    ros::Publisher _pub, _pspub;
+    ros::ServiceClient _srv;
         
     pcl::PointCloud<pcl::PointXYZ>::Ptr _pcl_pointcloud;
+    octomap_msgs::Octomap _map;
+    
+    bool _callbackDone;
 };
 } }

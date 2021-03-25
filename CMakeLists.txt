@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.0)
 project(cartesio_collision_support VERSION 1.0)
 
 find_package(cartesian_interface REQUIRED)
-
 find_package(moveit_core REQUIRED)
 find_package(moveit_ros_planning REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
@@ -39,6 +38,7 @@ target_link_libraries(add_sphere
 
 add_executable(point_cloud_node src/utils/point_cloud_node.cpp)
 target_link_libraries(point_cloud_node cartesio_collision_support)
+
 install(TARGETS point_cloud_node
     DESTINATION lib)
 
