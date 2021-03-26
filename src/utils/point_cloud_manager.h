@@ -27,6 +27,8 @@ public:
     
     void sendPlanningScene();
 
+    void publicPointCloud();
+
     pcl::PointCloud< pcl::PointXYZ > getPointCloud() const;
 
 

@@ -1,5 +1,7 @@
 #include <ros/ros.h>
 #include "point_cloud_manager.h"
+#include <thread>
+#include <chrono>
 
 using namespace XBot::Planning;
 
@@ -9,15 +11,23 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
     
     PointCloudManager pc_manager(nh);
-//     pc_manager.generatePointCloud();
-//     
-//     ros::Rate rate(30);
-//     while(ros::ok())
-//     {
-//         ros::spinOnce();
-//         pc_manager.sendPlanningScene();
-//         rate.sleep();
-//     }
+    std::cout << "generating PointCloud..." << std::endl;
+    pc_manager.generatePointCloud();
+    for (int i = 0; i < 100; i++)
+    {
+        pc_manager.publicPointCloud();
+        ros::spinOnce();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    pc_manager.sendPlanningScene();
+
+    ros::Rate rate(30);
+    while(ros::ok())
+    {
+        pc_manager.publicPointCloud();
+        ros::spinOnce();
+        rate.sleep();
+    }
     
     return 0;
 }
