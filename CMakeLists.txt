@@ -40,7 +40,7 @@ add_executable(point_cloud_node src/utils/point_cloud_node.cpp)
 target_link_libraries(point_cloud_node cartesio_collision_support)
 
 install(TARGETS point_cloud_node
-    DESTINATION lib)
+    DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY examples/
     DESTINATION share/${PROJECT_NAME}/examples)
