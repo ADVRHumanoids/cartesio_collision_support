@@ -9,25 +9,27 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "point_cloud_node");
     ros::NodeHandle nh;
-    
+    ros::Rate rate(30);
+
     PointCloudManager pc_manager(nh);
     std::cout << "generating PointCloud..." << std::endl;
     pc_manager.generatePointCloud();
-    for (int i = 0; i < 100; i++)
+
+    while(!pc_manager.sendPlanningScene())
     {
         pc_manager.publicPointCloud();
         ros::spinOnce();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        rate.sleep();
     }
-    pc_manager.sendPlanningScene();
 
-    ros::Rate rate(30);
+    return 0;
+
     while(ros::ok())
     {
         pc_manager.publicPointCloud();
         ros::spinOnce();
         rate.sleep();
     }
-    
+
     return 0;
 }

@@ -18,14 +18,14 @@ namespace XBot { namespace Planning {
 class PointCloudManager {
 
 public:
-    
+
     PointCloudManager ( ros::NodeHandle& nh);
-    
+
     void generatePointCloud();
-    
+
     void callback(const octomap_msgs::OctomapPtr& msg);
-    
-    void sendPlanningScene();
+
+    bool sendPlanningScene();
 
     void publicPointCloud();
 
@@ -33,15 +33,15 @@ public:
 
 
 private:
-    
+
     ros::NodeHandle _nh;
     ros::Subscriber _sub;
     ros::Publisher _pub, _pspub;
     ros::ServiceClient _srv;
-        
+
     pcl::PointCloud<pcl::PointXYZ>::Ptr _pcl_pointcloud;
     octomap_msgs::Octomap _map;
-    
+
     bool _callbackDone;
 };
 } }
