@@ -25,22 +25,9 @@ Collision:
     lib_name: libcartesio_collision_support.so
     bound_scaling: 0.1
     distance_threshold: 0.01
-    max_pairs: 20
+    max_pairs: 50
     collision_urdf_path: $(rospack find cogimon_urdf)/urdf/cogimon_capsules.rviz
     collision_srdf_path: $(rospack find cogimon_srdf)/srdf/cogimon_capsules.srdf
-    # pairs:
-    #  - [ball1, ball2]
-    #  - [wheel_1, wheel_2]
-    #  - [hip1_2, arm1_4]
-    #  - [knee_1, arm1_4]
-    #  - [hip1_2, arm1_5]
-    #  - [knee_1, arm1_5]
-    #  - [hip2_1, arm1_6]
-    #  - [knee_1, arm1_6]
-    #  - [hip2_1, ball1]
-    #  - [knee_1, ball1]
-    #  - [wheel_1, ball1]
-    #  - [wheel_1, arm1_6]
 
 Waist:
     type: Cartesian

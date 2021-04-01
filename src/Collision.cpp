@@ -282,8 +282,11 @@ void CollisionRos::setVisualizeDistances(const bool flag)
 bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene::Request &req,
                                                 moveit_msgs::ApplyPlanningScene::Response &res)
 {
+    // for visualization purposes (e.g. rviz/PlanningScene)
     _ps->applyPlanningScene(req.scene);
 
+    // notify collision avoidance constraint that
+    // world geometry has changed
     _ci_coll->worldUpdated(req.scene.world);
 
     res.success = true;
