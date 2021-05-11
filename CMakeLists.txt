@@ -13,6 +13,8 @@ find_package(PCL 1.7 QUIET COMPONENTS   common
 
 set(CMAKE_CXX_STANDARD 14)
 
+catkin_package()
+
 include_directories(
     ${PCL_INCLUDE_DIRS})
 
@@ -47,6 +49,3 @@ install(DIRECTORY examples/
 
 install(DIRECTORY launch/
     DESTINATION share/${PROJECT_NAME}/launch)
-
-install(FILES manifest.xml
-    DESTINATION share/${PROJECT_NAME})
