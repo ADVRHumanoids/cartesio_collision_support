@@ -190,7 +190,7 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     Eigen::VectorXd q;
     _model->getJointPosition(q);
 
-    _opensot_coll = std::make_shared<CollisionConstrSoT>(
+    _opensot_coll = SotUtils::make_shared<CollisionConstrSoT>(
                         q,
                         *_model,
                         _ci_coll->getSize(),
