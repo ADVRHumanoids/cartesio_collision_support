@@ -13,7 +13,7 @@
 #include <XBotInterface/ModelInterface.h>
 
 
-namespace XBot { namespace Cartesian { namespace Planning {
+namespace XBot { namespace Cartesian { namespace Collision {
 
 /**
  * @brief The CollisionDetection class provides collision detection capabilities

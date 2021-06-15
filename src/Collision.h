@@ -150,7 +150,7 @@ private:
 
     ros::ServiceServer _world_upd_srv;
 
-    std::unique_ptr<Planning::PlanningSceneWrapper> _ps;
+    std::unique_ptr<Collision::PlanningSceneWrapper> _ps;
 
     bool _visualize_distances;
 

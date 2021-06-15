@@ -62,7 +62,7 @@ private:
 };
 }
 
-namespace XBot { namespace Cartesian { namespace Planning {
+namespace XBot { namespace Cartesian { namespace Collision {
 
 PlanningSceneWrapper::PlanningSceneWrapper(ModelInterface::ConstPtr model,
                                            urdf::ModelConstSharedPtr collision_urdf,

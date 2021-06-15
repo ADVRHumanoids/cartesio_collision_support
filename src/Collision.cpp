@@ -253,7 +253,7 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
 
     auto nh = ros::NodeHandle(context->nh().getNamespace() + "/" + task->getName());
 
-    _ps = std::make_unique<Planning::PlanningSceneWrapper>(_ci_coll->getModel(),
+    _ps = std::make_unique<Collision::PlanningSceneWrapper>(_ci_coll->getModel(),
                                                            _ci_coll->getCollisionUrdf(),
                                                            _ci_coll->getCollisionSrdf(),
                                                            nh);
