@@ -38,6 +38,10 @@ target_link_libraries(add_sphere
     cartesian_interface::CartesianInterface
     ${moveit_core_LIBRARIES})
 
+add_executable(collision_avoidance_issue examples/collision_avoidance_issue.cpp)
+target_link_libraries(collision_avoidance_issue
+    cartesian_interface::CartesianInterface)
+
 add_executable(point_cloud_node src/utils/point_cloud_node.cpp)
 target_link_libraries(point_cloud_node cartesio_collision_support)
 
