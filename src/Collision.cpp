@@ -296,6 +296,9 @@ bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene:
 
 void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
 {
+    // let base class do its magic
+    TaskRos::run(time);
+
     _ps->update();
     if(_visualize_distances)
     {
