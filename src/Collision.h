@@ -37,6 +37,7 @@ public:
      * @brief The callback type to listen to world update events
      */
     typedef std::function<void(const moveit_msgs::PlanningSceneWorld&)> WorldUpdateCallback;
+    typedef std::function<void(std::vector<moveit_msgs::AttachedCollisionObject>)> AttachedCollisionObjsCallback;
 
     /**
      * @brief CollisionTaskImpl constructor
@@ -97,12 +98,15 @@ public:
      */
     void registerWorldUpdateCallback(WorldUpdateCallback f);
 
+    void registerAttachedCollisionObjectsUpdateCallback(AttachedCollisionObjsCallback f);
+
     /**
      * @brief worldUpdated must be called whenever the world collision
      * model changes; it is mostly for internal use, don't call it
      * unless you are sure!
      */
     void worldUpdated(const moveit_msgs::PlanningSceneWorld& psw);
+    void attachedCollisionObjectsUpdated(std::vector<moveit_msgs::AttachedCollisionObject> ps_aco);
 
     void setLinkPairDistances(const std::list<LinkPairDistance>& distance_list);
     const std::list<LinkPairDistance>& getLinkPairDistances();
@@ -118,6 +122,8 @@ private:
     srdf::ModelConstSharedPtr _coll_srdf;
 
     std::list<WorldUpdateCallback> _world_upd_cb;
+    std::list<AttachedCollisionObjsCallback> _attached_collision_objs_upd_cb;
+
 
     std::list<LinkPairDistance> _distance_list;
 

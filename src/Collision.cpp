@@ -168,7 +168,18 @@ void CollisionTaskImpl::worldUpdated(const moveit_msgs::PlanningSceneWorld& psw)
     }
 }
 
+void CollisionTaskImpl::registerAttachedCollisionObjectsUpdateCallback(AttachedCollisionObjsCallback f)
+{
+    _attached_collision_objs_upd_cb.push_back(f);
+}
 
+void CollisionTaskImpl::attachedCollisionObjectsUpdated(std::vector<moveit_msgs::AttachedCollisionObject> ps_acos)
+{
+    for(auto& fn : _attached_collision_objs_upd_cb)
+    {
+        fn(ps_acos);
+    }
+}
 
 
 OpenSotCollisionConstraintAdapter::OpenSotCollisionConstraintAdapter(ConstraintDescription::Ptr ci_task,
@@ -224,6 +235,14 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     };
 
     _ci_coll->registerWorldUpdateCallback(on_world_upd);
+
+    // register attached collision objects update function
+    auto on_attached_collision_objs_upd = [this](std::vector<moveit_msgs::AttachedCollisionObject> ps_acos)
+    {
+        _opensot_coll->setAttachedCollisionObjects(ps_acos);
+    };
+
+    _ci_coll->registerAttachedCollisionObjectsUpdateCallback(on_attached_collision_objs_upd);
 
     return _opensot_coll;
 }
@@ -288,6 +307,7 @@ bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene:
     // notify collision avoidance constraint that
     // world geometry has changed
     _ci_coll->worldUpdated(req.scene.world);
+    _ci_coll->attachedCollisionObjectsUpdated(req.scene.robot_state.attached_collision_objects);
 
     res.success = true;
 
