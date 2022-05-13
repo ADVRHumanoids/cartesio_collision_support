@@ -181,6 +181,19 @@ void CollisionTaskImpl::attachedCollisionObjectsUpdated(std::vector<moveit_msgs:
     }
 }
 
+void CollisionTaskImpl::registerCollisionBlacklistUpdatedCallback(CollisionBlacklistCallback f)
+{
+    _collision_blacklist_upd_cb.push_back(f);
+}
+
+void CollisionTaskImpl::collisionBlacklistUpdated(std::list<LinkPairDistance::LinksPair> blackList)
+{
+    for(auto& fn : _collision_blacklist_upd_cb)
+    {
+        fn(blackList);
+    }
+}
+
 
 OpenSotCollisionConstraintAdapter::OpenSotCollisionConstraintAdapter(ConstraintDescription::Ptr ci_task,
                                                                      Context::ConstPtr context):
@@ -244,6 +257,14 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
 
     _ci_coll->registerAttachedCollisionObjectsUpdateCallback(on_attached_collision_objs_upd);
 
+    // register collision blacklist update function
+    auto on_collision_blacklist_upd = [this](std::list<LinkPairDistance::LinksPair> coll_bl)
+    {
+        _opensot_coll->setCollisionBlackList(coll_bl);
+    };
+
+    _ci_coll->registerCollisionBlacklistUpdatedCallback(on_collision_blacklist_upd);
+
     return _opensot_coll;
 }
 
@@ -287,6 +308,10 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
                                          &CollisionRos::apply_planning_scene_service,
                                          this);
 
+    _collision_blacklist_srv = nh.advertiseService("apply_collision_blacklist",
+                                         &CollisionRos::apply_collision_blacklist_service,
+                                         this);
+
     registerType("Collision");
 
     _vis_pub = nh.advertise<visualization_msgs::Marker>( "collision_distances", 0 );
@@ -307,7 +332,40 @@ bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene:
     // notify collision avoidance constraint that
     // world geometry has changed
     _ci_coll->worldUpdated(req.scene.world);
+    // notify collision avoidance constraint that
+    // attached collision objects have changed
     _ci_coll->attachedCollisionObjectsUpdated(req.scene.robot_state.attached_collision_objects);
+
+    res.success = true;
+
+    return true;
+}
+
+bool CollisionRos::apply_collision_blacklist_service(moveit_msgs::ApplyPlanningScene::Request &req,
+                                                moveit_msgs::ApplyPlanningScene::Response &res)
+{
+    std::list<LinkPairDistance::LinksPair> collision_blacklist;
+
+    auto acm_bl_msg = req.scene.allowed_collision_matrix;
+    auto acm_bl = std::make_shared<collision_detection::AllowedCollisionMatrix>(acm_bl_msg);
+    std::vector<std::string> link_names;
+    acm_bl->getAllEntryNames(link_names);
+    for(const auto& link_name_i: link_names)
+    {
+        for(const auto& link_name_j: link_names)
+        {
+            collision_detection::AllowedCollision::Type type;
+            if( acm_bl->getEntry(link_name_i, link_name_j, type) )
+            {
+                collision_blacklist.push_back(LinkPairDistance::LinksPair(link_name_i, link_name_j));
+            }
+        }
+    }
+
+    // notify collision avoidance constraint that
+    // world geometry has changed
+    _ci_coll->collisionBlacklistUpdated(collision_blacklist);
+
 
     res.success = true;
 

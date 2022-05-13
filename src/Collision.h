@@ -5,6 +5,7 @@
 #include <cartesian_interface/sdk/ros/server_api/TaskRos.h>
 #include <cartesian_interface/sdk/opensot/OpenSotTask.h>
 #include <OpenSoT/constraints/velocity/CollisionAvoidance.h>
+#include <OpenSoT/utils/collision_utils.h>
 
 #include <urdf/model.h>
 #include <srdfdom/model.h>
@@ -18,6 +19,7 @@ using CollisionConstrSoT = OpenSoT::constraints::velocity::CollisionAvoidance;
 
 
 class LinkPairDistance;
+typedef LinkPairDistance LinksPair;
 
 namespace XBot { namespace Cartesian { namespace collision {
 
@@ -38,6 +40,7 @@ public:
      */
     typedef std::function<void(const moveit_msgs::PlanningSceneWorld&)> WorldUpdateCallback;
     typedef std::function<void(std::vector<moveit_msgs::AttachedCollisionObject>)> AttachedCollisionObjsCallback;
+    typedef std::function<void(std::list<LinkPairDistance::LinksPair>)> CollisionBlacklistCallback;
 
     /**
      * @brief CollisionTaskImpl constructor
@@ -98,7 +101,18 @@ public:
      */
     void registerWorldUpdateCallback(WorldUpdateCallback f);
 
+    /**
+     * @brief register a callback to be invoked whenever the attached collision
+     * objects change
+     */
     void registerAttachedCollisionObjectsUpdateCallback(AttachedCollisionObjsCallback f);
+
+    /**
+     * @brief register a callback to be invoked whenever the collision blacklist
+     * change
+     */
+    void registerCollisionBlacklistUpdatedCallback(CollisionBlacklistCallback f);
+
 
     /**
      * @brief worldUpdated must be called whenever the world collision
@@ -106,7 +120,20 @@ public:
      * unless you are sure!
      */
     void worldUpdated(const moveit_msgs::PlanningSceneWorld& psw);
+
+    /**
+     * @brief attachedCollisionObjectsUpdated must be called whenever the attached collision
+     * objects change; it is mostly for internal use, don't call it
+     * unless you are sure!
+     */
     void attachedCollisionObjectsUpdated(std::vector<moveit_msgs::AttachedCollisionObject> ps_aco);
+
+    /**
+     * @brief collisionBlacklistUpdated must be called whenever the collision blacklist
+     * change; it is mostly for internal use, don't call it
+     * unless you are sure!
+     */
+    void collisionBlacklistUpdated(std::list<LinkPairDistance::LinksPair> blackList);
 
     void setLinkPairDistances(const std::list<LinkPairDistance>& distance_list);
     const std::list<LinkPairDistance>& getLinkPairDistances();
@@ -123,7 +150,7 @@ private:
 
     std::list<WorldUpdateCallback> _world_upd_cb;
     std::list<AttachedCollisionObjsCallback> _attached_collision_objs_upd_cb;
-
+    std::list<CollisionBlacklistCallback> _collision_blacklist_upd_cb;
 
     std::list<LinkPairDistance> _distance_list;
 
@@ -152,9 +179,14 @@ private:
     bool apply_planning_scene_service(moveit_msgs::ApplyPlanningScene::Request& req,
                                       moveit_msgs::ApplyPlanningScene::Response& res);
 
+    bool apply_collision_blacklist_service(moveit_msgs::ApplyPlanningScene::Request& req,
+                                   moveit_msgs::ApplyPlanningScene::Response& res);
+
     CollisionTaskImpl::Ptr _ci_coll;
 
     ros::ServiceServer _world_upd_srv;
+
+    ros::ServiceServer _collision_blacklist_srv;
 
     std::unique_ptr<Collision::PlanningSceneWrapper> _ps;
 
