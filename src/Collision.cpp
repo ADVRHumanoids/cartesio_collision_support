@@ -135,6 +135,16 @@ double CollisionTaskImpl::getDistanceThreshold() const
     return _min_dist;
 }
 
+void CollisionTaskImpl::get_current_acm_msg(moveit_msgs::AllowedCollisionMatrix & msg) const
+{
+    msg = _acm_msg;
+}
+
+void CollisionTaskImpl::set_current_acm_msg(const moveit_msgs::AllowedCollisionMatrix &msg)
+{
+    _acm_msg = msg;
+}
+
 std::list<std::pair<std::string, std::string> > CollisionTaskImpl::getWhiteList() const
 {
     return _pairs;
@@ -261,6 +271,9 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     auto on_collision_blacklist_upd = [this](std::list<LinkPairDistance::LinksPair> coll_bl)
     {
         _opensot_coll->setCollisionBlackList(coll_bl);
+        moveit_msgs::AllowedCollisionMatrix msg;
+        _opensot_coll->getCurrentACM_msg(msg);
+        _ci_coll->set_current_acm_msg(msg);
     };
 
     _ci_coll->registerCollisionBlacklistUpdatedCallback(on_collision_blacklist_upd);
@@ -316,6 +329,9 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
 
     _vis_pub = nh.advertise<visualization_msgs::Marker>( "collision_distances", 0 );
 
+    moveit_msgs::PlanningScene ps_tmpl;
+    update_planning_scene(ps_tmpl);
+
 }
 
 void CollisionRos::setVisualizeDistances(const bool flag)
@@ -354,7 +370,7 @@ bool CollisionRos::apply_collision_blacklist_service(moveit_msgs::ApplyPlanningS
     {
         for(const auto& link_name_j: link_names)
         {
-            collision_detection::AllowedCollision::Type type;
+            collision_detection::AllowedCollision::Type type = collision_detection::AllowedCollision::Type::NEVER;
             if( acm_bl->getEntry(link_name_i, link_name_j, type) )
             {
                 collision_blacklist.push_back(LinkPairDistance::LinksPair(link_name_i, link_name_j));
@@ -366,10 +382,20 @@ bool CollisionRos::apply_collision_blacklist_service(moveit_msgs::ApplyPlanningS
     // world geometry has changed
     _ci_coll->collisionBlacklistUpdated(collision_blacklist);
 
+    update_planning_scene(req.scene);
 
     res.success = true;
 
     return true;
+}
+
+void XBot::Cartesian::collision::CollisionRos::update_planning_scene(moveit_msgs::PlanningScene& scene)
+{
+    // get the updated ACM after applying collision blacklist
+    _ci_coll->get_current_acm_msg(scene.allowed_collision_matrix);
+    
+    // update planningscene
+    _ps->applyPlanningScene(scene);
 }
 
 void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
@@ -378,6 +404,8 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
     TaskRos::run(time);
 
     _ps->update();
+
+
     if(_visualize_distances)
     {
         std::list<LinkPairDistance> distance_list = _ci_coll->getLinkPairDistances();

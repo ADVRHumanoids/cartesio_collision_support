@@ -12,6 +12,7 @@
 
 #include "planning_scene/planning_scene_wrapper.h"
 #include <moveit_msgs/ApplyPlanningScene.h>
+#include <moveit_msgs/AllowedCollisionMatrix.h>
 
 #include <visualization_msgs/Marker.h>
 
@@ -70,6 +71,10 @@ public:
      * the minimum valid distance between collision objects
      */
     double getDistanceThreshold() const;
+
+    void get_current_acm_msg(moveit_msgs::AllowedCollisionMatrix& msg) const;
+
+    void set_current_acm_msg(const moveit_msgs::AllowedCollisionMatrix& msg);
 
     /**
      * @brief getter for the list of collision pairs that must be taken into
@@ -145,6 +150,8 @@ private:
     double _bound_scaling;
     double _min_dist;
 
+    moveit_msgs::AllowedCollisionMatrix _acm_msg;
+
     urdf::ModelConstSharedPtr _coll_urdf;
     srdf::ModelConstSharedPtr _coll_srdf;
 
@@ -173,6 +180,9 @@ public:
     void run(ros::Time time) override;
 
     void setVisualizeDistances(const bool flag);
+
+    void update_planning_scene(moveit_msgs::PlanningScene& scene);
+
 
 private:
 
