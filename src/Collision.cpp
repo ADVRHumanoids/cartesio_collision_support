@@ -251,6 +251,10 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
         _opensot_coll->setLinksVsEnvironment(env_whitelist);
     }
 
+    moveit_msgs::AllowedCollisionMatrix msg;
+    _opensot_coll->getCurrentACM_msg(msg);
+    _ci_coll->set_current_acm_msg(msg);
+
     // register world update function
     auto on_world_upd = [this](const moveit_msgs::PlanningSceneWorld& psw)
     {
@@ -329,8 +333,12 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
 
     _vis_pub = nh.advertise<visualization_msgs::Marker>( "collision_distances", 0 );
 
-    moveit_msgs::PlanningScene ps_tmpl;
-    update_planning_scene(ps_tmpl);
+    moveit_msgs::GetPlanningScene::Request req;
+    moveit_msgs::GetPlanningScene::Response res;
+    req.components.components = 0;
+    _ps->getPlanningScene(req, res);
+//     moveit_msgs::PlanningScene ps_tmpl;
+    update_planning_scene(res.scene);
 
 }
 
