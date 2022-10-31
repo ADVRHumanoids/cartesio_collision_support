@@ -18,10 +18,14 @@ catkin_package()
 include_directories(
     ${PCL_INCLUDE_DIRS})
 
+if(${PCL_FOUND})
+    set(PCM_SRC src/utils/point_cloud_manager.cpp)
+endif()
+
 add_library(cartesio_collision_support SHARED
     src/Collision.cpp
     src/planning_scene/planning_scene_wrapper.cpp
-    src/utils/point_cloud_manager.cpp)
+    ${PCM_SRC})
 
 target_link_libraries(cartesio_collision_support
     cartesian_interface::CartesianInterface
@@ -34,15 +38,19 @@ install(TARGETS cartesio_collision_support
     DESTINATION lib)
 
 add_executable(add_sphere examples/add_sphere.cpp)
+
 target_link_libraries(add_sphere
     cartesian_interface::CartesianInterface
     ${moveit_core_LIBRARIES})
 
-add_executable(point_cloud_node src/utils/point_cloud_node.cpp)
-target_link_libraries(point_cloud_node cartesio_collision_support)
+if(${PCL_FOUND})
+    add_executable(point_cloud_node src/utils/point_cloud_node.cpp)
 
-install(TARGETS point_cloud_node
-    DESTINATION lib/${PROJECT_NAME})
+    target_link_libraries(point_cloud_node cartesio_collision_support)
+
+    install(TARGETS point_cloud_node
+        DESTINATION lib/${PROJECT_NAME})
+endif()
 
 install(DIRECTORY examples/
     DESTINATION share/${PROJECT_NAME}/examples)
