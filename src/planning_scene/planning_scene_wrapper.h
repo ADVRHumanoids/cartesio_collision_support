@@ -10,7 +10,7 @@
 #include <moveit_msgs/PlanningScene.h>
 #include <moveit_msgs/GetPlanningScene.h>
 
-#include <XBotInterface/ModelInterface.h>
+#include <xbot2_interface/xbotinterface2.h>
 
 
 namespace XBot { namespace Cartesian { namespace Collision {

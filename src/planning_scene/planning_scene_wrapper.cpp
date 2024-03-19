@@ -88,7 +88,7 @@ PlanningSceneWrapper::PlanningSceneWrapper(ModelInterface::ConstPtr model,
     if(collision_srdf)
     {
         srdf::SRDFWriter srdfw;
-        srdfw.initModel(_model->getUrdf(), *collision_srdf);
+        srdfw.initModel(*_model->getUrdf(), *collision_srdf);
         srdf_string = srdfw.getSRDFString();
     }
 
@@ -103,7 +103,7 @@ PlanningSceneWrapper::PlanningSceneWrapper(ModelInterface::ConstPtr model,
     _monitor = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(rml);
 
     // save srdf
-    _srdf.initString(_model->getUrdf(), srdf_string);
+    _srdf.initString(*_model->getUrdf(), srdf_string);
 }
 
 void PlanningSceneWrapper::startMonitor()
@@ -161,7 +161,7 @@ void PlanningSceneWrapper::update()
     _model->getJointPosition(q);
 
     // update planning scene from model
-    for(const auto& jpair : _model->getUrdf().joints_)
+    for(const auto& jpair : _model->getUrdf()->joints_)
     {
         auto jname = jpair.first; // joint name
         auto jmodel = jpair.second; // urdf::Joint model

@@ -11,7 +11,7 @@ find_package(PCL 1.7 QUIET COMPONENTS   common
                                         search
                                         io)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 catkin_package()
 
