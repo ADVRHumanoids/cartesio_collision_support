@@ -156,10 +156,6 @@ void PlanningSceneWrapper::update()
     // retrieve robot state data struct
     auto& robot_state = _monitor->getPlanningScene()->getCurrentStateNonConst();
 
-    // retrieve modelinterface state
-    XBot::JointNameMap q;
-    _model->getJointPosition(q);
-
     // update planning scene from model
     for(const auto& jpair : _model->getUrdf()->joints_)
     {
@@ -171,7 +167,8 @@ void PlanningSceneWrapper::update()
                 jtype == urdf::Joint::PRISMATIC ||
                 jtype == urdf::Joint::CONTINUOUS)
         {
-            robot_state.setJointPositions(jname, {q.at(jname)}); // joint value is a simple scalar
+            double qi = _model->getJoint(jname)->getJointPositionMinimal().value();
+            robot_state.setJointPositions(jname, {qi}); // joint value is a simple scalar
         }
         else if(jtype == urdf::Joint::FLOATING) // joint value is actually a pose (3 + 4 values)
         {
@@ -267,10 +264,10 @@ std::vector<std::string> PlanningSceneWrapper::getCollidingLinks() const
     return links;
 }
 
-std::vector<XBot::ModelChain> PlanningSceneWrapper::getCollidingChains() const
+std::vector<XBot::Chain::ConstPtr> PlanningSceneWrapper::getCollidingChains() const
 {
     std::vector<std::string> colliding_links = getCollidingLinks();
-    std::vector<XBot::ModelChain> colliding_chains;
+    std::vector<XBot::Chain::ConstPtr> colliding_chains;
     for (auto i:_srdf.getGroups())
     {
         auto link  = i.links_;
@@ -278,7 +275,7 @@ std::vector<XBot::ModelChain> PlanningSceneWrapper::getCollidingChains() const
         {
             if (std::any_of(colliding_links.begin(), colliding_links.end(), [j](std::string k){ return k == j; }))
             {
-               colliding_chains.push_back(_model->chain(i.name_));
+               colliding_chains.push_back(_model->getChain(i.name_));
                goto cnt;
             }
         }

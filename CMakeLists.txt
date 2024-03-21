@@ -10,17 +10,29 @@ find_package(PCL 1.7 QUIET COMPONENTS   common
                                         surface
                                         search
                                         io)
+find_package(message_generation)
 
 set(CMAKE_CXX_STANDARD 17)
+
+
+add_message_files(
+  FILES
+  CollisionState.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+)
 
 catkin_package()
 
 include_directories(
     ${PCL_INCLUDE_DIRS})
 
-if(${PCL_FOUND})
-    set(PCM_SRC src/utils/point_cloud_manager.cpp)
-endif()
+# if(${PCL_FOUND})
+#     set(PCM_SRC src/utils/point_cloud_manager.cpp)
+# endif()
 
 add_library(cartesio_collision_support SHARED
     src/Collision.cpp
@@ -43,14 +55,14 @@ target_link_libraries(add_sphere
     cartesian_interface::CartesianInterface
     ${moveit_core_LIBRARIES})
 
-if(${PCL_FOUND})
-    add_executable(point_cloud_node src/utils/point_cloud_node.cpp)
+# if(${PCL_FOUND})
+#     add_executable(point_cloud_node src/utils/point_cloud_node.cpp)
 
-    target_link_libraries(point_cloud_node cartesio_collision_support)
+#     target_link_libraries(point_cloud_node cartesio_collision_support)
 
-    install(TARGETS point_cloud_node
-        DESTINATION lib/${PROJECT_NAME})
-endif()
+#     install(TARGETS point_cloud_node
+#         DESTINATION lib/${PROJECT_NAME})
+# endif()
 
 install(DIRECTORY examples/
     DESTINATION share/${PROJECT_NAME}/examples)

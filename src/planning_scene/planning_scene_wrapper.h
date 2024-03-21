@@ -76,7 +76,7 @@ public:
      * @brief getCollidingChains
      * @return vector of colliding chains (computed from colliding links)
      */
-    std::vector<XBot::ModelChain> getCollidingChains() const;
+    std::vector<XBot::Chain::ConstPtr> getCollidingChains() const;
 
     void applyPlanningScene(const moveit_msgs::PlanningScene& scene);
 

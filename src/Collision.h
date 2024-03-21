@@ -4,6 +4,7 @@
 #include <cartesian_interface/sdk/problem/Task.h>
 #include <cartesian_interface/sdk/ros/server_api/TaskRos.h>
 #include <cartesian_interface/sdk/opensot/OpenSotTask.h>
+
 #include <OpenSoT/constraints/velocity/CollisionAvoidance.h>
 
 #include <urdf/model.h>
@@ -16,10 +17,10 @@
 
 using CollisionConstrSoT = OpenSoT::constraints::velocity::CollisionAvoidance;
 
-
-class LinkPairDistance;
-
 namespace XBot { namespace Cartesian { namespace collision {
+
+using WitnessPointVector = XBot::Collision::CollisionModel::WitnessPointVector;
+using LinkPairVector = XBot::Collision::CollisionModel::LinkPairVector;
 
 /**
  * @brief The CollisionTaskImpl class implements CartesIO's description
@@ -68,6 +69,12 @@ public:
     double getDistanceThreshold() const;
 
     /**
+     * @brief get the maximum distance within which a collision
+     * is actually taken into account by the constraint
+     */
+    double getDetectionThreshold() const;
+
+    /**
      * @brief getter for the list of collision pairs that must be taken into
      * account by the constraint
      */
@@ -104,8 +111,23 @@ public:
      */
     void worldUpdated(const moveit_msgs::PlanningSceneWorld& psw);
 
-    void setLinkPairDistances(const std::list<LinkPairDistance>& distance_list);
-    const std::list<LinkPairDistance>& getLinkPairDistances();
+    /**
+     * @brief witnessPoints
+     * @return
+     */
+    WitnessPointVector& witnessPoints();
+
+    /**
+     * @brief linkPairs
+     * @return
+     */
+    LinkPairVector& linkPairs();
+
+    /**
+     * @brief distances
+     * @return
+     */
+    std::vector<double>& distances();
 
 private:
 
@@ -113,13 +135,16 @@ private:
     std::list<std::string> _env_links;
     double _bound_scaling;
     double _min_dist;
+    double _detection_threshold;
 
     urdf::ModelConstSharedPtr _coll_urdf;
     srdf::ModelConstSharedPtr _coll_srdf;
 
     std::list<WorldUpdateCallback> _world_upd_cb;
 
-    std::list<LinkPairDistance> _distance_list;
+    WitnessPointVector _wp;
+    LinkPairVector _cpairs;
+    std::vector<double> _dist;
 
 };
 
@@ -156,6 +181,8 @@ private:
 
     ros::Publisher _vis_pub;
 
+    ros::Publisher _coll_pub;
+
 };
 
 /**
@@ -186,6 +213,10 @@ protected:
     CollisionConstrSoT::Ptr _opensot_coll;
 
 private:
+
+    bool addPrimitiveShape(std::string name,
+                           shape_msgs::SolidPrimitive p,
+                           Eigen::Affine3d w_T_p);
 
     CollisionTaskImpl::Ptr _ci_coll;
     Eigen::VectorXd _x;

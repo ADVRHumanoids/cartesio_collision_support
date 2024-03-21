@@ -19,14 +19,6 @@ stack:
       - Wheel_HR
       - Wheel_HL
       - Postural
-      - Steering_FL
-      - Steering_FR
-      - Steering_HL
-      - Steering_HR
-      - Rolling_FL
-      - Rolling_FR
-      - Rolling_HL
-      - Rolling_HR
 
 constraints: [JointLimits, VelocityLimits, Collision]
 
@@ -40,10 +32,11 @@ Collision:
     type: CollisionConstraint
     lib_name: libcartesio_collision_support.so
     bound_scaling: 0.1
-    distance_threshold: 0.01
-    max_pairs: 10
-    collision_urdf_path: $(rospack find centauro_urdf)/urdf/capsule/centauro_capsules.urdf
-    collision_srdf_path: $(rospack find centauro_srdf)/srdf/capsule/centauro_capsules.srdf
+    distance_threshold: 0.02
+    detection_threshold: 0.10
+    max_pairs: 30
+    collision_urdf_path: $(rospack find centauro_urdf)/urdf/centauro_capsule.urdf
+    collision_srdf_path: $(rospack find centauro_srdf)/srdf/centauro_capsule.srdf
     # pairs:
     #  - [ball1, ball2]
     #  - [wheel_1, wheel_2]
@@ -207,15 +200,6 @@ Postural:
     type: Postural
     lambda: 0.01
     weight: 0.001
-    disabled_joints:
-      - ankle_yaw_1
-      - ankle_yaw_2
-      - ankle_yaw_3
-      - ankle_yaw_4
-      - j_wheel_1
-      - j_wheel_2
-      - j_wheel_3
-      - j_wheel_4
 
 Com:
     type: Com

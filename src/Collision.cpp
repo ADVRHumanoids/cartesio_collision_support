@@ -1,12 +1,13 @@
 #include "Collision.h"
 #include <boost/make_shared.hpp>
-#include <OpenSoT/utils/LinkPairDistance.h>
-
+#include <xbot2_interface/common/utils.h>
+#include <eigen_conversions/eigen_msg.h>
+#include <cartesio_collision_support/CollisionState.h>
 
 using namespace XBot::Cartesian;
 using namespace XBot::Cartesian::collision;
 
-const int default_max_pairs = 15;
+const int default_max_pairs = 50;
 
 namespace
 {
@@ -30,6 +31,7 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
                                      Context::ConstPtr context):
     TaskDescriptionImpl(node, context, "collision_avoidance", get_size(node)),
     _bound_scaling(1.0),
+    _detection_threshold(-1),
     _min_dist(0.001)  // note: smth > 0 to avoid singular min distance segment
 {
 
@@ -59,10 +61,21 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
         _min_dist = n.as<double>();
     }
 
+    if(auto n = node["detection_threshold"])
+    {
+        _detection_threshold = n.as<double>();
+    }
+
+    if(_detection_threshold > 0 &&
+        _detection_threshold < _min_dist)
+    {
+        throw std::invalid_argument("detection_threshold must be (way) higher than distance_threshold");
+    }
+
     if(auto n = node["collision_urdf_path"])
     {
         // parse path via shell
-        auto urdf_path = XBot::Utils::computeAbsolutePathShell(n.as<std::string>());
+        auto urdf_path = XBot::Utils::echo(n.as<std::string>());
 
         // construct model shared ptr
         auto urdf_mdl = new urdf::Model;
@@ -81,7 +94,7 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
     if(auto n = node["collision_srdf_path"])
     {
         // parse path via shell
-        auto srdf_path = XBot::Utils::computeAbsolutePathShell(n.as<std::string>());
+        auto srdf_path = XBot::Utils::echo(n.as<std::string>());
 
         // construct model shared ptr
         auto srdf_mdl = new srdf::Model;
@@ -92,7 +105,7 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
 
         if(!urdf)
         {
-            urdf = &(context->model()->getUrdf());
+            urdf = context->model()->getUrdf().get();
         }
 
         // if cannot init, destroy
@@ -104,19 +117,8 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
             _coll_srdf.reset();
         }
     }
-
-
 }
 
-void CollisionTaskImpl::setLinkPairDistances(const std::list<LinkPairDistance>& distance_list)
-{
-    _distance_list = distance_list;
-}
-
-const std::list<LinkPairDistance>& CollisionTaskImpl::getLinkPairDistances()
-{
-    return _distance_list;
-}
 
 bool CollisionTaskImpl::validate()
 {
@@ -133,6 +135,11 @@ double CollisionTaskImpl::getBoundScaling() const
 double CollisionTaskImpl::getDistanceThreshold() const
 {
     return _min_dist;
+}
+
+double CollisionTaskImpl::getDetectionThreshold() const
+{
+    return _detection_threshold;
 }
 
 std::list<std::pair<std::string, std::string> > CollisionTaskImpl::getWhiteList() const
@@ -168,14 +175,27 @@ void CollisionTaskImpl::worldUpdated(const moveit_msgs::PlanningSceneWorld& psw)
     }
 }
 
+WitnessPointVector &CollisionTaskImpl::witnessPoints()
+{
+    return _wp;
+}
 
+LinkPairVector &CollisionTaskImpl::linkPairs()
+{
+    return _cpairs;
+}
 
+std::vector<double> &CollisionTaskImpl::distances()
+{
+    return _dist;
+}
 
 OpenSotCollisionConstraintAdapter::OpenSotCollisionConstraintAdapter(ConstraintDescription::Ptr ci_task,
                                                                      Context::ConstPtr context):
     OpenSotConstraintAdapter(ci_task, context)
 {
     _ci_coll = std::dynamic_pointer_cast<CollisionTaskImpl>(ci_task);
+
     if(!_ci_coll) throw std::runtime_error("Provided task description "
                                            "does not have expected type 'CollisionTask'");
 }
@@ -191,7 +211,6 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     _model->getJointPosition(q);
 
     _opensot_coll = SotUtils::make_shared<CollisionConstrSoT>(
-                        q,
                         *_model,
                         _ci_coll->getSize(),
                         _ci_coll->getCollisionUrdf(),
@@ -201,13 +220,14 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     // set parameters
     _opensot_coll->setBoundScaling(_ci_coll->getBoundScaling());
     _opensot_coll->setLinkPairThreshold(_ci_coll->getDistanceThreshold());
-    _opensot_coll->setDetectionThreshold(0.05);  // hardcoded!
+    _opensot_coll->setDetectionThreshold(_ci_coll->getDetectionThreshold());  // hardcoded!
 
     // set whitelist if available
     auto whitelist = _ci_coll->getWhiteList();
     if(!whitelist.empty())
     {
-        _opensot_coll->setCollisionWhiteList(whitelist);
+        std::set<std::pair<std::string, std::string>> whitelist_set(whitelist.begin(), whitelist.end());
+        _opensot_coll->setCollisionList(whitelist_set);
     }
 
     // set link-env collisions
@@ -220,7 +240,28 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     // register world update function
     auto on_world_upd = [this](const moveit_msgs::PlanningSceneWorld& psw)
     {
-        _opensot_coll->setWorldCollisions(psw);
+        for(const auto& co : psw.collision_objects)
+        {
+            Eigen::Affine3d w_T_co;
+
+            tf::poseMsgToEigen(co.pose, w_T_co);
+
+            if(co.operation == co.ADD)
+            {
+                for(int i = 0; i < co.primitives.size(); i++)
+                {
+                    Eigen::Affine3d co_T_p;
+
+                    tf::poseMsgToEigen(co.primitive_poses[i], co_T_p);
+
+                    addPrimitiveShape(co.id + "__" + std::to_string(i),
+                                      co.primitives[i],
+                                      w_T_co * co_T_p);
+                }
+            }
+        }
+
+        _opensot_coll->updateEnvironment();
     };
 
     _ci_coll->registerWorldUpdateCallback(on_world_upd);
@@ -231,16 +272,50 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
 void OpenSotCollisionConstraintAdapter::update(double time, double period)
 {
     OpenSotConstraintAdapter::update(time, period);
-
-    _ci_coll->setLinkPairDistances(_opensot_coll->getLinkPairDistances());
 }
 
 void OpenSotCollisionConstraintAdapter::processSolution(const Eigen::VectorXd &solution)
 {
-
+    _opensot_coll->getOrderedWitnessPointVector(_ci_coll->witnessPoints());
+    _opensot_coll->getOrderedLinkPairVector(_ci_coll->linkPairs());
+    _opensot_coll->getOrderedDistanceVector(_ci_coll->distances());
 }
 
+bool OpenSotCollisionConstraintAdapter::addPrimitiveShape(std::string name,
+                                                          shape_msgs::SolidPrimitive p,
+                                                          Eigen::Affine3d w_T_p)
+{
+    using Shape = XBot::Collision::Shape;
 
+    Shape::Variant shape;
+
+    if(p.type == p.BOX)
+    {
+        Shape::Box box;
+        box.size << p.dimensions[p.BOX_X], p.dimensions[p.BOX_Y], p.dimensions[p.BOX_Z];
+        shape = box;
+    }
+    else if(p.type == p.SPHERE)
+    {
+        Shape::Sphere sphere;
+        sphere.radius = p.dimensions[p.SPHERE_RADIUS];
+        shape = sphere;
+    }
+    else if(p.type == p.CYLINDER)
+    {
+        Shape::Cylinder cylinder;
+        cylinder.radius = p.dimensions[p.CYLINDER_RADIUS];
+        cylinder.length = p.dimensions[p.CYLINDER_HEIGHT];
+        shape = cylinder;
+    }
+    else
+    {
+        Logger::error("unsupported shape type");
+        return false;
+    }
+
+    return _opensot_coll->getCollisionModel().addCollisionShape(name, "world", shape, w_T_p);
+}
 
 CollisionRos::CollisionRos(TaskDescription::Ptr task,
                            RosContext::Ptr context):
@@ -272,6 +347,8 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
 
     _vis_pub = nh.advertise<visualization_msgs::Marker>( "collision_distances", 0 );
 
+    _coll_pub = nh.advertise<cartesio_collision_support::CollisionState>("collision_state", 1);
+
 }
 
 void CollisionRos::setVisualizeDistances(const bool flag)
@@ -300,9 +377,18 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
     TaskRos::run(time);
 
     _ps->update();
+
+    const auto& wpv = _ci_coll->witnessPoints();
+
+    auto k2p = [](const Eigen::Vector3d& eig)
+    {
+        geometry_msgs::Point p;
+        p.x = eig[0]; p.y = eig[1]; p.z = eig[2];
+        return p;
+    };
+
     if(_visualize_distances)
     {
-        std::list<LinkPairDistance> distance_list = _ci_coll->getLinkPairDistances();
 
         visualization_msgs::Marker marker;
         marker.header.frame_id = "ci/world";
@@ -317,31 +403,41 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
         marker.pose.orientation.y = 0.;
         marker.pose.orientation.z = 0.;
         marker.pose.orientation.w = 1.;
-        marker.color.r = 0.;
-        marker.color.g = 1.;
+        marker.color.r = 1.;
+        marker.color.g = 0.;
         marker.color.b = 0.;
         marker.color.a = 1.;
         marker.scale.x = 0.005;
         marker.scale.y = 0.;
         marker.scale.z = 0.;
 
-        for(const auto& data : distance_list)
+        for(const auto& [p1, p2] : wpv)
         {
-            auto k2p = [](const KDL::Vector &k)->geometry_msgs::Point{
-                geometry_msgs::Point p;
-                p.x = k[0]; p.y = k[1]; p.z = k[2];
-                return p;
-            };
-
-
-
             // closest point on first link
-            marker.points.push_back(k2p(data.getClosestPoints().first.p));
+            marker.points.push_back(k2p(p1));
+
             // closest point on second link
-            marker.points.push_back(k2p(data.getClosestPoints().second.p));
+            marker.points.push_back(k2p(p2));
         }
         _vis_pub.publish(marker);
     }
+
+    // publish collision state
+    cartesio_collision_support::CollisionState msg;
+
+    const auto& lp = _ci_coll->linkPairs();
+    const auto& dist = _ci_coll->distances();
+
+    for(int i = 0; i < lp.size(); i++)
+    {
+        msg.link_1.push_back(lp[i].first);
+        msg.link_2.push_back(lp[i].second);
+        msg.wp_1.push_back(k2p(wpv[i].first));
+        msg.wp_2.push_back(k2p(wpv[i].second));
+        msg.distance.push_back(dist[i]);
+    }
+
+    _coll_pub.publish(msg);
 }
 
 

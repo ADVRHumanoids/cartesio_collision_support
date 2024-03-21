@@ -7,10 +7,10 @@
         textfile="$(find centauro_urdf)/urdf/centauro.urdf"/>
 
     <param name="robot_description_capsules"
-        textfile="$(find centauro_urdf)/urdf/capsule/centauro_capsules.urdf"/>
+        textfile="$(find centauro_urdf)/urdf/centauro_capsule.urdf"/>
 
     <param name="robot_description_capsules_semantic"
-        textfile="$(find centauro_srdf)/srdf/capsule/centauro_capsules.srdf"/>
+        textfile="$(find centauro_srdf)/srdf/centauro_capsule.srdf"/>
 
     <param name="robot_description_semantic"
         textfile="$(find centauro_srdf)/srdf/centauro.srdf"/>

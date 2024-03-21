@@ -8,7 +8,7 @@ PointCloudManager::PointCloudManager ( ros::NodeHandle& nh ):
     _callbackDone(false)
 
 {
-    _pub = _nh.advertise<pcl::PointCloud<pcl::PointXYZ>>("input_cloud", 10, true);
+    _pub = _nh.advertise<sensor_msgs::PointCloud2>("input_cloud", 10, true);
     _sub = _nh.subscribe("octomap_binary", 10, &PointCloudManager::callback, this);
 
     _srv = _nh.serviceClient<moveit_msgs::ApplyPlanningScene>("cartesian/collision_avoidance/apply_planning_scene");
