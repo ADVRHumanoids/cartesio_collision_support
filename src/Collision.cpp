@@ -261,7 +261,7 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
             }
         }
 
-        _opensot_coll->updateEnvironment();
+        _opensot_coll->collisionModelUpdated();
     };
 
     _ci_coll->registerWorldUpdateCallback(on_world_upd);
