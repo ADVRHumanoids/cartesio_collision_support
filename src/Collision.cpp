@@ -39,7 +39,7 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
     {
         for(auto p : n)
         {
-            _pairs.push_back(p.as<std::pair<std::string, std::string>>());
+            _pairs.insert(p.as<std::pair<std::string, std::string>>());
         }
     }
 
@@ -47,7 +47,7 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
     {
         for(auto p : n)
         {
-            _env_links.push_back(p.as<std::string>());
+            _env_links.insert(p.as<std::string>());
         }
     }
 
@@ -142,12 +142,12 @@ double CollisionTaskImpl::getDetectionThreshold() const
     return _detection_threshold;
 }
 
-std::list<std::pair<std::string, std::string> > CollisionTaskImpl::getWhiteList() const
+std::set<std::pair<std::string, std::string> > CollisionTaskImpl::getWhiteList() const
 {
     return _pairs;
 }
 
-std::list<std::string> CollisionTaskImpl::getEnvironmentWhiteList() const
+std::set<std::string> CollisionTaskImpl::getEnvironmentWhiteList() const
 {
     return _env_links;
 }

@@ -78,13 +78,13 @@ public:
      * @brief getter for the list of collision pairs that must be taken into
      * account by the constraint
      */
-    std::list<std::pair<std::string, std::string>> getWhiteList() const;
+    std::set<std::pair<std::string, std::string>> getWhiteList() const;
 
     /**
      * @brief getter for the list of links that must be checked for collision
      * against the environment
      */
-    std::list<std::string> getEnvironmentWhiteList() const;
+    std::set<std::string> getEnvironmentWhiteList() const;
 
     /**
      * @brief collision urdf used to override the default urdf collision
@@ -131,8 +131,8 @@ public:
 
 private:
 
-    std::list<std::pair<std::string, std::string>> _pairs;
-    std::list<std::string> _env_links;
+    std::set<std::pair<std::string, std::string>> _pairs;
+    std::set<std::string> _env_links;
     double _bound_scaling;
     double _min_dist;
     double _detection_threshold;
