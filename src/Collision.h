@@ -6,6 +6,7 @@
 #include <cartesian_interface/sdk/opensot/OpenSotTask.h>
 
 #include <OpenSoT/constraints/velocity/CollisionAvoidance.h>
+#include <OpenSoT/tasks/velocity/CollisionAvoidance.h>
 
 #include <urdf/model.h>
 #include <srdfdom/model.h>
@@ -16,6 +17,7 @@
 #include <visualization_msgs/Marker.h>
 
 using CollisionConstrSoT = OpenSoT::constraints::velocity::CollisionAvoidance;
+using CollisionTaskSoT = OpenSoT::tasks::velocity::CollisionAvoidance;
 
 namespace XBot { namespace Cartesian { namespace collision {
 
@@ -26,8 +28,7 @@ using LinkPairVector = XBot::Collision::CollisionModel::LinkPairVector;
  * @brief The CollisionTaskImpl class implements CartesIO's description
  * of a collision avoidance task or constraint
  */
-class CollisionTaskImpl : public virtual ConstraintDescription,
-        public TaskDescriptionImpl
+class CollisionTaskImpl : public TaskDescriptionImpl
 {
 
 public:
@@ -148,6 +149,17 @@ private:
 
 };
 
+class CollisionConstraintImpl : public CollisionTaskImpl,
+                                public virtual ConstraintDescription
+{
+
+public:
+
+    CARTESIO_DECLARE_SMART_PTR(CollisionTaskImpl);
+
+    using CollisionTaskImpl::CollisionTaskImpl;
+};
+
 /**
  * @brief The CollisionRos class implements the Ros API for
  * a collision task or constraint.
@@ -191,22 +203,24 @@ private:
  * gets the information to construct, configure, and run the
  * collision avoidance constraint
  */
-class OpenSotCollisionConstraintAdapter :
-        public OpenSotConstraintAdapter
+class OpenSotCollisionTaskAdapter :
+        public OpenSotTaskAdapter
 {
 
 public:
 
-    OpenSotCollisionConstraintAdapter(ConstraintDescription::Ptr ci_task,
-                                      Context::ConstPtr context);
+    OpenSotCollisionTaskAdapter(TaskDescription::Ptr ci_task,
+                                Context::ConstPtr context);
 
     OpenSoT::OptvarHelper::VariableVector getRequiredVariables() const override;
 
-    virtual ConstraintPtr constructConstraint() override;
+    virtual TaskPtr constructTask() override;
 
     virtual void update(double time, double period) override;
 
     virtual void processSolution(const Eigen::VectorXd& solution) override;
+
+    CollisionConstrSoT::Ptr getCollisionConstraint();
 
 protected:
 
@@ -223,8 +237,23 @@ private:
 
 };
 
+class OpenSotCollisionConstraintAdapter : public OpenSotConstraintAdapter
+{
 
+public:
 
+    OpenSotCollisionConstraintAdapter(ConstraintDescription::Ptr ci_task,
+                                      Context::ConstPtr context);
 
+    OpenSoT::OptvarHelper::VariableVector getRequiredVariables() const override;
+
+    ConstraintPtr constructConstraint() override;
+
+    void processSolution(const Eigen::VectorXd &solution) override;
+
+private:
+
+    std::shared_ptr<OpenSotCollisionTaskAdapter> _task_adapter;
+};
 }}}
 #endif // COLLISION_H

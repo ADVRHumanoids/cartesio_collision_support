@@ -27,6 +27,7 @@ int get_size(YAML::Node node)
 }
 }
 
+
 CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
                                      Context::ConstPtr context):
     TaskDescriptionImpl(node, context, "collision_avoidance", get_size(node)),
@@ -120,6 +121,7 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
 }
 
 
+
 bool CollisionTaskImpl::validate()
 {
     return _bound_scaling <= 1.0 &&
@@ -127,45 +129,54 @@ bool CollisionTaskImpl::validate()
             _min_dist >= 0.0;
 }
 
+
 double CollisionTaskImpl::getBoundScaling() const
 {
     return _bound_scaling;
 }
+
 
 double CollisionTaskImpl::getDistanceThreshold() const
 {
     return _min_dist;
 }
 
+
 double CollisionTaskImpl::getDetectionThreshold() const
 {
     return _detection_threshold;
 }
+
 
 std::set<std::pair<std::string, std::string> > CollisionTaskImpl::getWhiteList() const
 {
     return _pairs;
 }
 
+
 std::set<std::string> CollisionTaskImpl::getEnvironmentWhiteList() const
 {
     return _env_links;
 }
+
 
 urdf::ModelConstSharedPtr CollisionTaskImpl::getCollisionUrdf() const
 {
     return _coll_urdf;
 }
 
+
 srdf::ModelConstSharedPtr CollisionTaskImpl::getCollisionSrdf() const
 {
     return _coll_srdf;
 }
 
+
 void CollisionTaskImpl::registerWorldUpdateCallback(WorldUpdateCallback f)
 {
     _world_upd_cb.push_back(f);
 }
+
 
 void CollisionTaskImpl::worldUpdated(const moveit_msgs::PlanningSceneWorld& psw)
 {
@@ -175,24 +186,27 @@ void CollisionTaskImpl::worldUpdated(const moveit_msgs::PlanningSceneWorld& psw)
     }
 }
 
+
 WitnessPointVector &CollisionTaskImpl::witnessPoints()
 {
     return _wp;
 }
+
 
 LinkPairVector &CollisionTaskImpl::linkPairs()
 {
     return _cpairs;
 }
 
+
 std::vector<double> &CollisionTaskImpl::distances()
 {
     return _dist;
 }
 
-OpenSotCollisionConstraintAdapter::OpenSotCollisionConstraintAdapter(ConstraintDescription::Ptr ci_task,
-                                                                     Context::ConstPtr context):
-    OpenSotConstraintAdapter(ci_task, context)
+OpenSotCollisionTaskAdapter::OpenSotCollisionTaskAdapter(TaskDescription::Ptr ci_task,
+                                                         Context::ConstPtr context):
+    OpenSotTaskAdapter(ci_task, context)
 {
     _ci_coll = std::dynamic_pointer_cast<CollisionTaskImpl>(ci_task);
 
@@ -200,12 +214,12 @@ OpenSotCollisionConstraintAdapter::OpenSotCollisionConstraintAdapter(ConstraintD
                                            "does not have expected type 'CollisionTask'");
 }
 
-OpenSoT::OptvarHelper::VariableVector OpenSotCollisionConstraintAdapter::getRequiredVariables() const
+OpenSoT::OptvarHelper::VariableVector OpenSotCollisionTaskAdapter::getRequiredVariables() const
 {
     return {};
 }
 
-ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
+TaskPtr OpenSotCollisionTaskAdapter::constructTask()
 {
     Eigen::VectorXd q;
     _model->getJointPosition(q);
@@ -266,22 +280,29 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
 
     _ci_coll->registerWorldUpdateCallback(on_world_upd);
 
-    return _opensot_coll;
+    return std::make_shared<CollisionTaskSoT>(_opensot_coll);
 }
 
-void OpenSotCollisionConstraintAdapter::update(double time, double period)
+void OpenSotCollisionTaskAdapter::update(double time, double period)
 {
-    OpenSotConstraintAdapter::update(time, period);
+    OpenSotTaskAdapter::update(time, period);
 }
 
-void OpenSotCollisionConstraintAdapter::processSolution(const Eigen::VectorXd &solution)
+void OpenSotCollisionTaskAdapter::processSolution(const Eigen::VectorXd &solution)
 {
+    OpenSotTaskAdapter::processSolution(solution);
     _opensot_coll->getOrderedWitnessPointVector(_ci_coll->witnessPoints());
     _opensot_coll->getOrderedLinkPairVector(_ci_coll->linkPairs());
     _opensot_coll->getOrderedDistanceVector(_ci_coll->distances());
 }
 
-bool OpenSotCollisionConstraintAdapter::addPrimitiveShape(std::string name,
+OpenSoT::constraints::velocity::CollisionAvoidance::Ptr
+OpenSotCollisionTaskAdapter::getCollisionConstraint()
+{
+    return _opensot_coll;
+}
+
+bool OpenSotCollisionTaskAdapter::addPrimitiveShape(std::string name,
                                                           shape_msgs::SolidPrimitive p,
                                                           Eigen::Affine3d w_T_p)
 {
@@ -317,6 +338,7 @@ bool OpenSotCollisionConstraintAdapter::addPrimitiveShape(std::string name,
     return _opensot_coll->getCollisionModel().addCollisionShape(name, "world", shape, w_T_p);
 }
 
+
 CollisionRos::CollisionRos(TaskDescription::Ptr task,
                            RosContext::Ptr context):
     TaskRos(task, context)
@@ -351,10 +373,12 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
 
 }
 
+
 void CollisionRos::setVisualizeDistances(const bool flag)
 {
     _visualize_distances = flag;
 }
+
 
 bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene::Request &req,
                                                 moveit_msgs::ApplyPlanningScene::Response &res)
@@ -370,6 +394,7 @@ bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene:
 
     return true;
 }
+
 
 void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
 {
@@ -441,9 +466,35 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
 }
 
 
-CARTESIO_REGISTER_TASK_PLUGIN(CollisionTaskImpl, CollisionConstraint)
+
+OpenSotCollisionConstraintAdapter::OpenSotCollisionConstraintAdapter(ConstraintDescription::Ptr ci_task,
+                                                         Context::ConstPtr context):
+    OpenSotConstraintAdapter(ci_task, context)
+{
+
+    _task_adapter = std::make_shared<OpenSotCollisionTaskAdapter>(ci_task, context);
+}
+
+OpenSoT::OptvarHelper::VariableVector OpenSotCollisionConstraintAdapter::getRequiredVariables() const
+{
+    return _task_adapter->getRequiredVariables();
+}
+
+ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
+{
+    _task_adapter->constructTask();
+    return _task_adapter->getCollisionConstraint();
+}
+
+void OpenSotCollisionConstraintAdapter::processSolution(
+    const Eigen::VectorXd &solution)
+{
+    return _task_adapter->processSolution(solution);
+}
+
+CARTESIO_REGISTER_TASK_PLUGIN(CollisionConstraintImpl, CollisionConstraint)
 CARTESIO_REGISTER_TASK_PLUGIN(CollisionTaskImpl, CollisionTask)
 CARTESIO_REGISTER_ROS_API_PLUGIN(CollisionRos, CollisionConstraint)
+CARTESIO_REGISTER_ROS_API_PLUGIN(CollisionRos, CollisionTask)
 CARTESIO_REGISTER_OPENSOT_CONSTR_PLUGIN(OpenSotCollisionConstraintAdapter, CollisionConstraint)
-
-
+CARTESIO_REGISTER_OPENSOT_TASK_PLUGIN(OpenSotCollisionTaskAdapter, CollisionTask)
