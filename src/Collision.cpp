@@ -471,7 +471,6 @@ OpenSotCollisionConstraintAdapter::OpenSotCollisionConstraintAdapter(ConstraintD
                                                          Context::ConstPtr context):
     OpenSotConstraintAdapter(ci_task, context)
 {
-
     _task_adapter = std::make_shared<OpenSotCollisionTaskAdapter>(ci_task, context);
 }
 
@@ -482,7 +481,6 @@ OpenSoT::OptvarHelper::VariableVector OpenSotCollisionConstraintAdapter::getRequ
 
 ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
 {
-    _task_adapter->constructTask();
     return _task_adapter->getCollisionConstraint();
 }
 
@@ -492,9 +490,18 @@ void OpenSotCollisionConstraintAdapter::processSolution(
     return _task_adapter->processSolution(solution);
 }
 
+bool XBot::Cartesian::collision::OpenSotCollisionConstraintAdapter::initialize(
+    const OpenSoT::OptvarHelper &vars)
+{
+    return _task_adapter->initialize(vars) && OpenSotConstraintAdapter::initialize(vars);
+}
+
+
 CARTESIO_REGISTER_TASK_PLUGIN(CollisionConstraintImpl, CollisionConstraint)
 CARTESIO_REGISTER_TASK_PLUGIN(CollisionTaskImpl, CollisionTask)
 CARTESIO_REGISTER_ROS_API_PLUGIN(CollisionRos, CollisionConstraint)
 CARTESIO_REGISTER_ROS_API_PLUGIN(CollisionRos, CollisionTask)
 CARTESIO_REGISTER_OPENSOT_CONSTR_PLUGIN(OpenSotCollisionConstraintAdapter, CollisionConstraint)
 CARTESIO_REGISTER_OPENSOT_TASK_PLUGIN(OpenSotCollisionTaskAdapter, CollisionTask)
+
+

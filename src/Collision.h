@@ -254,6 +254,10 @@ public:
 private:
 
     std::shared_ptr<OpenSotCollisionTaskAdapter> _task_adapter;
+
+    // OpenSotConstraintAdapter interface
+public:
+    bool initialize(const OpenSoT::OptvarHelper &vars) override;
 };
 }}}
 #endif // COLLISION_H
