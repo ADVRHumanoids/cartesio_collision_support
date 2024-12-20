@@ -120,6 +120,20 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
     }
 }
 
+XBot::Collision::CollisionModel& CollisionTaskImpl::getCollisionModel()
+{
+    if(!collision_model)
+    {
+        throw std::runtime_error("collision model not set");
+    }
+
+    return *collision_model;
+}
+
+void CollisionTaskImpl::collisionModelUpdated()
+{
+    worldUpdated(moveit_msgs::PlanningSceneWorld());
+}
 
 
 bool CollisionTaskImpl::validate()
@@ -228,7 +242,8 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask()
                         *_model,
                         _ci_coll->getSize(),
                         _ci_coll->getCollisionUrdf(),
-                        _ci_coll->getCollisionSrdf()
+                        _ci_coll->getCollisionSrdf(),
+                        false  // NOTE: dont skip infeasible pairs in collision task !!!
                         );
 
     // set parameters
@@ -279,6 +294,8 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask()
     };
 
     _ci_coll->registerWorldUpdateCallback(on_world_upd);
+
+    _ci_coll->collision_model = &_opensot_coll->getCollisionModel();
 
     return std::make_shared<CollisionTaskSoT>(_opensot_coll);
 }

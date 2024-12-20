@@ -1,6 +1,8 @@
 #ifndef COLLISION_H
 #define COLLISION_H
 
+#include <cartesio_collision_support/Collision.h>
+
 #include <cartesian_interface/sdk/problem/Task.h>
 #include <cartesian_interface/sdk/ros/server_api/TaskRos.h>
 #include <cartesian_interface/sdk/opensot/OpenSotTask.h>
@@ -28,7 +30,7 @@ using LinkPairVector = XBot::Collision::CollisionModel::LinkPairVector;
  * @brief The CollisionTaskImpl class implements CartesIO's description
  * of a collision avoidance task or constraint
  */
-class CollisionTaskImpl : public TaskDescriptionImpl
+class CollisionTaskImpl : public TaskDescriptionImpl, public virtual CollisionTask
 {
 
 public:
@@ -46,6 +48,17 @@ public:
      * (see cpp)
      */
     CollisionTaskImpl(YAML::Node node, Context::ConstPtr context);
+
+    /**
+     * @brief getCollisionModel
+     * @return
+     */
+    XBot::Collision::CollisionModel& getCollisionModel() override;
+
+    /**
+     * @brief collisionModelUpdated
+     */
+    void collisionModelUpdated() override;
 
     /**
      * @brief validates parameter correctness
@@ -129,6 +142,11 @@ public:
      * @return
      */
     std::vector<double>& distances();
+
+    /**
+     * @brief collision_model
+     */
+    XBot::Collision::CollisionModel * collision_model = nullptr;
 
 private:
 

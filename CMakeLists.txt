@@ -28,7 +28,9 @@ generate_messages(
 catkin_package()
 
 include_directories(
-    ${PCL_INCLUDE_DIRS})
+    ${PCL_INCLUDE_DIRS}
+    include
+)
 
 # if(${PCL_FOUND})
 #     set(PCM_SRC src/utils/point_cloud_manager.cpp)
@@ -69,3 +71,5 @@ install(DIRECTORY examples/
 
 install(DIRECTORY launch/
     DESTINATION share/${PROJECT_NAME}/launch)
+
+add_subdirectory(bindings/python/)
