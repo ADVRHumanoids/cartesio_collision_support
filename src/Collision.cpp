@@ -235,6 +235,12 @@ OpenSoT::OptvarHelper::VariableVector OpenSotCollisionTaskAdapter::getRequiredVa
 
 TaskPtr OpenSotCollisionTaskAdapter::constructTask()
 {
+    // task does not skip infeasible pairs
+    return constructTask(false);
+}
+
+TaskPtr OpenSotCollisionTaskAdapter::constructTask(bool skip_infeasible_pairs)
+{
     Eigen::VectorXd q;
     _model->getJointPosition(q);
 
@@ -243,7 +249,7 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask()
                         _ci_coll->getSize(),
                         _ci_coll->getCollisionUrdf(),
                         _ci_coll->getCollisionSrdf(),
-                        false  // NOTE: dont skip infeasible pairs in collision task !!!
+                        skip_infeasible_pairs  // NOTE: dont skip infeasible pairs in collision task !!!
                         );
 
     // set parameters
@@ -498,6 +504,7 @@ OpenSoT::OptvarHelper::VariableVector OpenSotCollisionConstraintAdapter::getRequ
 
 ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
 {
+    _task_adapter->constructTask(true);
     return _task_adapter->getCollisionConstraint();
 }
 

@@ -234,6 +234,8 @@ public:
 
     virtual TaskPtr constructTask() override;
 
+    TaskPtr constructTask(bool skip_infeasible_pairs);
+
     virtual void update(double time, double period) override;
 
     virtual void processSolution(const Eigen::VectorXd& solution) override;
@@ -277,5 +279,6 @@ private:
 public:
     bool initialize(const OpenSoT::OptvarHelper &vars) override;
 };
+
 }}}
 #endif // COLLISION_H
