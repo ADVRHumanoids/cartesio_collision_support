@@ -1,11 +1,15 @@
 #ifndef COLLISION_H
 #define COLLISION_H
 
+#include <xbot2_interface/collision.h>
+
 #include <cartesio_collision_support/Collision.h>
 
 #include <cartesian_interface/sdk/problem/Task.h>
 #include <cartesian_interface/sdk/ros/server_api/TaskRos.h>
 #include <cartesian_interface/sdk/opensot/OpenSotTask.h>
+
+#include <cartesio_collision_support/msg/collision_state.hpp>
 
 #include <OpenSoT/constraints/velocity/CollisionAvoidance.h>
 #include <OpenSoT/tasks/velocity/CollisionAvoidance.h>
@@ -14,9 +18,10 @@
 #include <srdfdom/model.h>
 
 #include "planning_scene/planning_scene_wrapper.h"
-#include <moveit_msgs/ApplyPlanningScene.h>
+#include <moveit_msgs/srv/apply_planning_scene.hpp>
 
-#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/msg/marker.hpp>
+#include <std_msgs/msg/string.hpp>
 
 using CollisionConstrSoT = OpenSoT::constraints::velocity::CollisionAvoidance;
 using CollisionTaskSoT = OpenSoT::tasks::velocity::CollisionAvoidance;
@@ -35,12 +40,21 @@ class CollisionTaskImpl : public TaskDescriptionImpl, public virtual CollisionTa
 
 public:
 
+    struct WorldShape 
+    {
+        std::string name;
+        Eigen::Affine3d pose;
+        XBot::Collision::Shape::Variant shape;
+        std::vector<std::string> disabled_collisions;
+    };
+
+
     CARTESIO_DECLARE_SMART_PTR(CollisionTaskImpl);
 
     /**
      * @brief The callback type to listen to world update events
      */
-    typedef std::function<void(const moveit_msgs::PlanningSceneWorld&)> WorldUpdateCallback;
+    typedef std::function<void(const moveit_msgs::msg::PlanningSceneWorld&)> WorldUpdateCallback;
 
     /**
      * @brief CollisionTaskImpl constructor
@@ -48,6 +62,9 @@ public:
      * (see cpp)
      */
     CollisionTaskImpl(YAML::Node node, Context::ConstPtr context);
+
+
+    void setCollisionModel(XBot::Collision::CollisionModel& model);
 
     /**
      * @brief getCollisionModel
@@ -89,6 +106,11 @@ public:
     double getDetectionThreshold() const;
 
     /**
+     * @brief get the weight of infeasible pairs
+     */
+    double getInfeasiblePairWeight() const;
+
+    /**
      * @brief getter for the list of collision pairs that must be taken into
      * account by the constraint
      */
@@ -123,7 +145,7 @@ public:
      * model changes; it is mostly for internal use, don't call it
      * unless you are sure!
      */
-    void worldUpdated(const moveit_msgs::PlanningSceneWorld& psw);
+    void worldUpdated(const moveit_msgs::msg::PlanningSceneWorld& psw);
 
     /**
      * @brief witnessPoints
@@ -144,22 +166,30 @@ public:
     std::vector<double>& distances();
 
     /**
-     * @brief collision_model
+     * @brief getWorldShapes
+     * @return
      */
-    XBot::Collision::CollisionModel * collision_model = nullptr;
+    const std::map<std::string, WorldShape>& getWorldShapes() const;
 
 private:
+
+
+    XBot::Collision::CollisionModel * collision_model = nullptr;
 
     std::set<std::pair<std::string, std::string>> _pairs;
     std::set<std::string> _env_links;
     double _bound_scaling;
     double _min_dist;
     double _detection_threshold;
+    double _infeasible_pair_weight;
 
     urdf::ModelConstSharedPtr _coll_urdf;
     srdf::ModelConstSharedPtr _coll_srdf;
 
     std::list<WorldUpdateCallback> _world_upd_cb;
+
+    std::map<std::string, WorldShape> _world_shapes;
+
 
     WitnessPointVector _wp;
     LinkPairVector _cpairs;
@@ -192,26 +222,30 @@ public:
     CollisionRos(TaskDescription::Ptr task,
                  RosContext::Ptr context);
 
-    void run(ros::Time time) override;
+    void run(rclcpp::Time time) override;
 
     void setVisualizeDistances(const bool flag);
 
 private:
 
-    bool apply_planning_scene_service(moveit_msgs::ApplyPlanningScene::Request& req,
-                                      moveit_msgs::ApplyPlanningScene::Response& res);
+    bool apply_planning_scene_service(moveit_msgs::srv::ApplyPlanningScene::Request::ConstSharedPtr req,
+                                      moveit_msgs::srv::ApplyPlanningScene::Response::SharedPtr res);
 
     CollisionTaskImpl::Ptr _ci_coll;
 
-    ros::ServiceServer _world_upd_srv;
+    rclcpp::ServiceBase::SharedPtr _world_upd_srv;
 
     std::unique_ptr<Collision::PlanningSceneWrapper> _ps;
 
     bool _visualize_distances;
 
-    ros::Publisher _vis_pub;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr _vis_pub;
 
-    ros::Publisher _coll_pub;
+    rclcpp::Publisher<cartesio_collision_support::msg::CollisionState>::SharedPtr _coll_pub;
+
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _coll_urdf_pub;
+
+    rclcpp::Node::SharedPtr _node;
 
 };
 
@@ -249,7 +283,7 @@ protected:
 private:
 
     bool addPrimitiveShape(std::string name,
-                           shape_msgs::SolidPrimitive p,
+                           shape_msgs::msg::SolidPrimitive p,
                            Eigen::Affine3d w_T_p);
 
     CollisionTaskImpl::Ptr _ci_coll;

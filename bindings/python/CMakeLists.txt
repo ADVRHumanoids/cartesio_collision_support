@@ -21,7 +21,7 @@ if(${pybind11_FOUND} AND ${COMPILE_PYTHON_BINDINGS})
 
     pybind11_add_module(pycollision_support pycollision_support.cpp)
 
-    target_link_libraries(pycollision_support PUBLIC xbot2_interface::collision cartesian_interface::CartesianInterface cartesio_collision_support)
+    target_link_libraries(pycollision_support PUBLIC xbot2_interface::collision cartesian_interface::CartesianInterface cartesio_collision_support_lib)
 
     install(TARGETS pycollision_support
         DESTINATION ${PYTHON_SITE}/cartesio_collision_support)

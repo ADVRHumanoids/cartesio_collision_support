@@ -3,12 +3,11 @@
 
 /* Contributed from the cartesio_planning project */
 
-#include <ros/callback_queue.h>
-#include <ros/spinner.h>
+#include <rclcpp/executor.hpp>
 
-#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
-#include <moveit_msgs/PlanningScene.h>
-#include <moveit_msgs/GetPlanningScene.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
+#include <moveit_msgs/msg/planning_scene.hpp>
+#include <moveit_msgs/srv/get_planning_scene.hpp>
 
 #include <xbot2_interface/xbotinterface2.h>
 
@@ -35,7 +34,7 @@ public:
     PlanningSceneWrapper(ModelInterface::ConstPtr model,
                          urdf::ModelConstSharedPtr collision_urdf = nullptr,
                          srdf::ModelConstSharedPtr collision_srdf = nullptr,
-                         ros::NodeHandle nh = ros::NodeHandle("~"));
+                         rclcpp::Node::SharedPtr node = nullptr);
 
     /**
      * @brief startMonitor method starts monitoring changes in the environments
@@ -78,10 +77,10 @@ public:
      */
     std::vector<XBot::Chain::ConstPtr> getCollidingChains() const;
 
-    void applyPlanningScene(const moveit_msgs::PlanningScene& scene);
+    void applyPlanningScene(const moveit_msgs::msg::PlanningScene& scene);
 
-    bool getPlanningScene(moveit_msgs::GetPlanningScene::Request& req,
-                          moveit_msgs::GetPlanningScene::Response& res);
+    bool getPlanningScene(moveit_msgs::srv::GetPlanningScene::Request::ConstSharedPtr req,
+                          moveit_msgs::srv::GetPlanningScene::Response::SharedPtr res);
 
     mutable collision_detection::AllowedCollisionMatrix acm;
 
@@ -90,11 +89,15 @@ private:
     ModelInterface::ConstPtr _model;
 
     planning_scene_monitor::PlanningSceneMonitorPtr _monitor;
+    
+    rclcpp::Node::SharedPtr _node;
+    rclcpp::executors::SingleThreadedExecutor _executor;
+    std::unique_ptr<std::thread> _monitor_thread;
 
-    ros::CallbackQueue _queue;
-    ros::NodeHandle _nh;
-    ros::AsyncSpinner _async_spinner;
-    ros::ServiceServer _get_ps_srv;
+    // ros::CallbackQueue _queue;
+    // ros::NodeHandle _nh;
+    // ros::AsyncSpinner _async_spinner;
+    rclcpp::ServiceBase::SharedPtr _get_ps_srv;
 
     srdf::Model _srdf;
 

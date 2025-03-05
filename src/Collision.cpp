@@ -1,8 +1,7 @@
 #include "Collision.h"
 #include <boost/make_shared.hpp>
 #include <xbot2_interface/common/utils.h>
-#include <eigen_conversions/eigen_msg.h>
-#include <cartesio_collision_support/CollisionState.h>
+#include <tf2_eigen/tf2_eigen.hpp>
 
 using namespace XBot::Cartesian;
 using namespace XBot::Cartesian::collision;
@@ -25,6 +24,42 @@ int get_size(YAML::Node node)
 
     return default_max_pairs;
 }
+
+// define helper struct to generate a visitor from a set of lambdas
+template<typename ... Ts>
+struct Overload : Ts ... {
+    using Ts::operator() ...;
+};
+template<class... Ts> Overload(Ts...) -> Overload<Ts...>;
+
+Eigen::VectorXd yaml_to_eigen(YAML::Node n, int expected_size, std::optional<Eigen::VectorXd> default_value = std::nullopt)
+{
+    if(default_value.has_value() && default_value->size() != expected_size)
+    {
+        throw std::invalid_argument("default value size does not match expected size");
+    }
+
+    if(n.IsNull() && default_value)
+    {
+        return *default_value;
+    }
+
+    if(n.size() != expected_size)
+    {
+        throw std::invalid_argument("[yaml_to_eigen] expected size " + std::to_string(expected_size) +
+                                    " but got " + std::to_string(n.size()));
+    }
+
+    Eigen::VectorXd ret(n.size());
+
+    for(int i = 0; i < n.size(); i++)
+    {
+        ret(i) = n[i].as<double>();
+    }
+
+    return ret;
+}
+
 }
 
 
@@ -73,6 +108,15 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
         throw std::invalid_argument("detection_threshold must be (way) higher than distance_threshold");
     }
 
+    if(auto n = node["infeasible_pair_weight"])
+    {
+        _infeasible_pair_weight = n.as<double>();
+    }
+    else
+    {
+        _infeasible_pair_weight = 0.01;
+    }
+
     if(auto n = node["collision_urdf_path"])
     {
         // parse path via shell
@@ -118,6 +162,104 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
             _coll_srdf.reset();
         }
     }
+
+    if(auto world = node["world"])
+    {
+        for(auto n : world)
+        {
+            auto name = n["name"].as<std::string>();
+            auto type = n["type"].as<std::string>();
+
+            WorldShape shape;
+
+            shape.pose.setIdentity();
+
+            if(auto pose = n["pose"])
+            {
+                Eigen::VectorXd pos_quat = yaml_to_eigen(pose, 7);
+                shape.pose.translation() = pos_quat.head<3>();
+                shape.pose.linear() = Eigen::Quaterniond(pos_quat.tail<4>()).toRotationMatrix();
+            }
+
+            shape.name = name;
+
+            if(auto dc = n["disabled_collisions"])
+            {
+                for(auto d : dc)
+                {
+                    shape.disabled_collisions.push_back(d.as<std::string>());
+                }
+            }
+
+            if(type == "halfspace")
+            {
+                XBot::Collision::Shape::Halfspace hs;
+                hs.normal = yaml_to_eigen(n["normal"], 3, Eigen::Vector3d::UnitZ());
+                hs.d = n["d"] ? n["d"].as<double>() : 0.0;
+                shape.shape = hs;
+            }
+            else if(type == "sphere")
+            {
+                XBot::Collision::Shape::Sphere s;
+                s.radius = n["radius"].as<double>();
+                shape.shape = s;
+            }
+            else if(type == "box")
+            {
+                XBot::Collision::Shape::Box b;
+                b.size = yaml_to_eigen(n["size"], 3);
+                shape.shape = b;
+            }
+            else if(type == "capsule")
+            {
+                XBot::Collision::Shape::Capsule c;
+                c.radius = n["radius"].as<double>();
+                c.length = n["length"].as<double>();
+                shape.shape = c;
+            }
+            else if(type == "cylinder")
+            {
+                XBot::Collision::Shape::Cylinder c;
+                c.radius = n["radius"].as<double>();
+                c.length = n["length"].as<double>();
+                shape.shape = c;
+            }
+            else if(type == "mesh")
+            {
+                XBot::Collision::Shape::Mesh m;
+                m.filepath = n["filepath"].as<std::string>();
+                m.scale = yaml_to_eigen(n["scale"], 3, Eigen::Vector3d::Ones());
+                shape.shape = m;
+            }
+            else 
+            {
+                throw std::runtime_error("shape type not supported: " + type);
+            }
+
+            _world_shapes[name] = shape;            
+        }
+    }
+}
+
+void CollisionTaskImpl::setCollisionModel(XBot::Collision::CollisionModel &model)
+{
+    collision_model = &model;
+
+    for(auto [cname, s] : _world_shapes)
+    {
+        bool ok = model.addCollisionShape(cname,
+                                "world", 
+                                s.shape, 
+                                s.pose, 
+                                s.disabled_collisions);
+
+        if(!ok)
+        {
+            throw std::runtime_error("could not add collision shape " + cname);
+        }
+    }
+
+    collisionModelUpdated();
 }
 
 XBot::Collision::CollisionModel& CollisionTaskImpl::getCollisionModel()
@@ -132,7 +274,7 @@ XBot::Collision::CollisionModel& CollisionTaskImpl::getCollisionModel()
 
 void CollisionTaskImpl::collisionModelUpdated()
 {
-    worldUpdated(moveit_msgs::PlanningSceneWorld());
+    worldUpdated(moveit_msgs::msg::PlanningSceneWorld());
 }
 
 
@@ -161,8 +303,12 @@ double CollisionTaskImpl::getDetectionThreshold() const
     return _detection_threshold;
 }
 
+double CollisionTaskImpl::getInfeasiblePairWeight() const
+{
+    return _infeasible_pair_weight;
+}
 
-std::set<std::pair<std::string, std::string> > CollisionTaskImpl::getWhiteList() const
+std::set<std::pair<std::string, std::string>> CollisionTaskImpl::getWhiteList() const
 {
     return _pairs;
 }
@@ -192,7 +338,7 @@ void CollisionTaskImpl::registerWorldUpdateCallback(WorldUpdateCallback f)
 }
 
 
-void CollisionTaskImpl::worldUpdated(const moveit_msgs::PlanningSceneWorld& psw)
+void CollisionTaskImpl::worldUpdated(const moveit_msgs::msg::PlanningSceneWorld& psw)
 {
     for(auto& fn : _world_upd_cb)
     {
@@ -216,6 +362,11 @@ LinkPairVector &CollisionTaskImpl::linkPairs()
 std::vector<double> &CollisionTaskImpl::distances()
 {
     return _dist;
+}
+
+const std::map<std::string, CollisionTaskImpl::WorldShape>& CollisionTaskImpl::getWorldShapes() const
+{
+    return _world_shapes;
 }
 
 OpenSotCollisionTaskAdapter::OpenSotCollisionTaskAdapter(TaskDescription::Ptr ci_task,
@@ -248,9 +399,13 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask(bool skip_infeasible_pairs)
                         *_model,
                         _ci_coll->getSize(),
                         _ci_coll->getCollisionUrdf(),
-                        _ci_coll->getCollisionSrdf(),
-                        skip_infeasible_pairs  // NOTE: dont skip infeasible pairs in collision task !!!
+                        _ci_coll->getCollisionSrdf()
                         );
+
+    if(!skip_infeasible_pairs)
+    {
+        _opensot_coll->setInfeasiblePairWeight(_ci_coll->getInfeasiblePairWeight());
+    }
 
     // set parameters
     _opensot_coll->setBoundScaling(_ci_coll->getBoundScaling());
@@ -273,13 +428,12 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask(bool skip_infeasible_pairs)
     }
 
     // register world update function
-    auto on_world_upd = [this](const moveit_msgs::PlanningSceneWorld& psw)
+    auto on_world_upd = [this](const moveit_msgs::msg::PlanningSceneWorld& psw)
     {
         for(const auto& co : psw.collision_objects)
         {
             Eigen::Affine3d w_T_co;
-
-            tf::poseMsgToEigen(co.pose, w_T_co);
+            tf2::fromMsg(co.pose, w_T_co);
 
             if(co.operation == co.ADD)
             {
@@ -287,7 +441,7 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask(bool skip_infeasible_pairs)
                 {
                     Eigen::Affine3d co_T_p;
 
-                    tf::poseMsgToEigen(co.primitive_poses[i], co_T_p);
+                    tf2::fromMsg(co.primitive_poses[i], co_T_p);
 
                     addPrimitiveShape(co.id + "__" + std::to_string(i),
                                       co.primitives[i],
@@ -301,7 +455,7 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask(bool skip_infeasible_pairs)
 
     _ci_coll->registerWorldUpdateCallback(on_world_upd);
 
-    _ci_coll->collision_model = &_opensot_coll->getCollisionModel();
+    _ci_coll->setCollisionModel(_opensot_coll->getCollisionModel());
 
     return std::make_shared<CollisionTaskSoT>(_opensot_coll);
 }
@@ -326,8 +480,8 @@ OpenSotCollisionTaskAdapter::getCollisionConstraint()
 }
 
 bool OpenSotCollisionTaskAdapter::addPrimitiveShape(std::string name,
-                                                          shape_msgs::SolidPrimitive p,
-                                                          Eigen::Affine3d w_T_p)
+                                                    shape_msgs::msg::SolidPrimitive p,
+                                                    Eigen::Affine3d w_T_p)
 {
     using Shape = XBot::Collision::Shape;
 
@@ -371,28 +525,109 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
     if(!_ci_coll) throw std::runtime_error("Provided task description "
                                            "does not have expected type 'CollisionTask'");
 
-    auto nh = ros::NodeHandle(context->nh().getNamespace() + "/" + task->getName());
+    _node = context->node()->create_sub_node(task->getName());
 
     _ps = std::make_unique<Collision::PlanningSceneWrapper>(_ci_coll->getModel(),
                                                            _ci_coll->getCollisionUrdf(),
                                                            _ci_coll->getCollisionSrdf(),
-                                                           nh);
+                                                           _node);
     _ps->startGetPlanningSceneServer();
     _ps->startMonitor();
 
+    // add world from yaml
+    for(auto& [name, shape] : _ci_coll->getWorldShapes())
+    {
+        shape_msgs::msg::SolidPrimitive prim;
+        
+        auto ShapeVisitor = Overload {
+            [&](const XBot::Collision::Shape::Box& box)
+            {
+                prim.type = prim.BOX;
+                prim.dimensions.resize(3);
+                prim.dimensions[prim.BOX_X] = box.size.x();
+                prim.dimensions[prim.BOX_Y] = box.size.y();
+                prim.dimensions[prim.BOX_Z] = box.size.z();
+            },
+            [&](const XBot::Collision::Shape::Capsule& caps)
+            {
+                // throw unsupported
+                throw std::runtime_error("capsule not supported");
+            },
+            [&](const XBot::Collision::Shape::Cylinder& cyl)
+            {
+                prim.type = prim.CYLINDER;
+                prim.dimensions.resize(2);
+                prim.dimensions[prim.CYLINDER_RADIUS] = cyl.radius;
+                prim.dimensions[prim.CYLINDER_HEIGHT] = cyl.length;
+            },
+            [&](const XBot::Collision::Shape::Halfspace& hs)
+            {
+                prim.type = prim.BOX;   
+                prim.dimensions.resize(3);
+                prim.dimensions[prim.BOX_X] = 10.0;
+                prim.dimensions[prim.BOX_Y] = 10.0;
+                prim.dimensions[prim.BOX_Z] = 0.01;
+            },
+            [&](const XBot::Collision::Shape::Mesh& mesh)
+            {
+                // throw unsupported
+                throw std::runtime_error("mesh not supported");
+            },
+            [&](const XBot::Collision::Shape::Sphere& sp)
+            {
+                prim.type = prim.SPHERE;
+                prim.dimensions.resize(1);
+                prim.dimensions[prim.SPHERE_RADIUS] = sp.radius;
+            },
+            [&](const auto& other)
+            {
+                throw std::runtime_error("unsupported shape type");
+            }
 
-    _visualize_distances = nh.param("visulize_distances", true);
+        };
+
+        std::visit(ShapeVisitor, shape.shape);
+
+        geometry_msgs::msg::Pose pose = tf2::toMsg(shape.pose);
+
+        moveit_msgs::msg::CollisionObject co;
+        co.header.frame_id = "world";
+        co.id = name;
+        co.operation = moveit_msgs::msg::CollisionObject::ADD;
+        co.primitives = {prim};
+        co.primitive_poses = {pose};
+
+        moveit_msgs::msg::PlanningScene ps;
+        ps.is_diff = true;
+        ps.world.collision_objects = {co};
+        
+        
+        _ps->applyPlanningScene(ps);
+    }
 
 
-    _world_upd_srv = nh.advertiseService("apply_planning_scene",
-                                         &CollisionRos::apply_planning_scene_service,
-                                         this);
+    _visualize_distances = _node->get_parameter_or("visulize_distances", true);
+
+
+    _world_upd_srv = _node->create_service<moveit_msgs::srv::ApplyPlanningScene>("apply_planning_scene",
+        std::bind(&CollisionRos::apply_planning_scene_service,
+                  this,
+                  std::placeholders::_1,
+                  std::placeholders::_2));
 
     registerType("Collision");
 
-    _vis_pub = nh.advertise<visualization_msgs::Marker>( "collision_distances", 0 );
+    _vis_pub = _node->create_publisher<visualization_msgs::msg::Marker>("collision_distances", 1);
 
-    _coll_pub = nh.advertise<cartesio_collision_support::CollisionState>("collision_state", 1);
+    _coll_pub = _node->create_publisher<cartesio_collision_support::msg::CollisionState>("collision_state", 1);
+
+    _coll_urdf_pub = _node->create_publisher<std_msgs::msg::String>("robot_description_collision", rclcpp::QoS(1).transient_local());
+
+    std_msgs::msg::String msg;
+
+    msg.data = XBot::Utils::urdfToString(*_ci_coll->getCollisionUrdf());
+
+    _coll_urdf_pub->publish(msg);
 
 }
 
@@ -403,47 +638,46 @@ void CollisionRos::setVisualizeDistances(const bool flag)
 }
 
 
-bool CollisionRos::apply_planning_scene_service(moveit_msgs::ApplyPlanningScene::Request &req,
-                                                moveit_msgs::ApplyPlanningScene::Response &res)
+bool CollisionRos::apply_planning_scene_service(moveit_msgs::srv::ApplyPlanningScene::Request::ConstSharedPtr req,
+                                                moveit_msgs::srv::ApplyPlanningScene::Response::SharedPtr res)
 {
     // for visualization purposes (e.g. rviz/PlanningScene)
-    _ps->applyPlanningScene(req.scene);
+    _ps->applyPlanningScene(req->scene);
 
     // notify collision avoidance constraint that
     // world geometry has changed
-    _ci_coll->worldUpdated(req.scene.world);
+    _ci_coll->worldUpdated(req->scene.world);
 
-    res.success = true;
+    res->success = true;
 
     return true;
 }
 
 
-void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
+void XBot::Cartesian::collision::CollisionRos::run(rclcpp::Time time)
 {
     // let base class do its magic
     TaskRos::run(time);
 
-    _ps->update();
+    if(_ps) _ps->update();
 
     const auto& wpv = _ci_coll->witnessPoints();
 
     auto k2p = [](const Eigen::Vector3d& eig)
     {
-        geometry_msgs::Point p;
+        geometry_msgs::msg::Point p;
         p.x = eig[0]; p.y = eig[1]; p.z = eig[2];
         return p;
     };
 
     if(_visualize_distances)
     {
-
-        visualization_msgs::Marker marker;
+        visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "ci/world";
-        marker.header.stamp = ros::Time().now();
+        marker.header.stamp = _node->get_clock()->now();
         marker.id = 0;
-        marker.type = visualization_msgs::Marker::LINE_LIST;
-        marker.action = visualization_msgs::Marker::ADD;
+        marker.type = visualization_msgs::msg::Marker::LINE_LIST;
+        marker.action = visualization_msgs::msg::Marker::ADD;
         marker.pose.position.x = 0.;
         marker.pose.position.y = 0.;
         marker.pose.position.z = 0.;
@@ -451,8 +685,8 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
         marker.pose.orientation.y = 0.;
         marker.pose.orientation.z = 0.;
         marker.pose.orientation.w = 1.;
-        marker.color.r = 1.;
-        marker.color.g = 0.;
+        marker.color.r = 0.;
+        marker.color.g = 1.;
         marker.color.b = 0.;
         marker.color.a = 1.;
         marker.scale.x = 0.005;
@@ -467,11 +701,11 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
             // closest point on second link
             marker.points.push_back(k2p(p2));
         }
-        _vis_pub.publish(marker);
+        _vis_pub->publish(marker);
     }
 
     // publish collision state
-    cartesio_collision_support::CollisionState msg;
+    cartesio_collision_support::msg::CollisionState msg;
 
     const auto& lp = _ci_coll->linkPairs();
     const auto& dist = _ci_coll->distances();
@@ -485,7 +719,7 @@ void XBot::Cartesian::collision::CollisionRos::run(ros::Time time)
         msg.distance.push_back(dist[i]);
     }
 
-    _coll_pub.publish(msg);
+    _coll_pub->publish(msg);
 }
 
 

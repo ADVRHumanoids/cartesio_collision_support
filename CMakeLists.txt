@@ -1,70 +1,61 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.20)
 project(cartesio_collision_support VERSION 2.0)
 
 find_package(cartesian_interface REQUIRED)
+find_package(cartesian_interface_ros REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(moveit_core REQUIRED)
 find_package(moveit_ros_planning REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
-find_package(PCL 1.7 QUIET COMPONENTS   common
+find_package(PCL REQUIRED COMPONENTS   common
                                         filters
                                         surface
                                         search
                                         io)
-find_package(message_generation)
-
-set(CMAKE_CXX_STANDARD 17)
+find_package(rosidl_default_generators REQUIRED)
 
 
-add_message_files(
-  FILES
-  CollisionState.msg
+set(CMAKE_CXX_STANDARD 20)
+
+set(msg_files
+  "msg/CollisionState.msg"
 )
 
-generate_messages(
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
   DEPENDENCIES
+  builtin_interfaces
   geometry_msgs
 )
-
-catkin_package()
 
 include_directories(
     ${PCL_INCLUDE_DIRS}
     include
 )
 
-# if(${PCL_FOUND})
-#     set(PCM_SRC src/utils/point_cloud_manager.cpp)
-# endif()
 
-add_library(cartesio_collision_support SHARED
+add_library(cartesio_collision_support_lib SHARED
     src/Collision.cpp
-    src/planning_scene/planning_scene_wrapper.cpp
-    ${PCM_SRC})
+    src/planning_scene/planning_scene_wrapper.cpp)
 
-target_link_libraries(cartesio_collision_support
+# set output name
+set_target_properties(cartesio_collision_support_lib PROPERTIES OUTPUT_NAME cartesio_collision_support)
+
+target_link_libraries(cartesio_collision_support_lib
     cartesian_interface::CartesianInterface
+    cartesian_interface::CartesianInterfaceSolverOpenSot
+    cartesian_interface_ros::CartesianInterfaceRos
+    # cartesian_interface::cartesian_interface__rosidl_typesupport_cpp
+    ${PROJECT_NAME}__rosidl_typesupport_cpp
     ${moveit_core_LIBRARIES}
     ${moveit_ros_planning_LIBRARIES}
     ${moveit_ros_planning_interface_LIBRARIES}
     ${PCL_LIBRARIES})
 
-install(TARGETS cartesio_collision_support
+
+
+install(TARGETS cartesio_collision_support_lib
     DESTINATION lib)
-
-add_executable(add_sphere examples/add_sphere.cpp)
-
-target_link_libraries(add_sphere
-    cartesian_interface::CartesianInterface
-    ${moveit_core_LIBRARIES})
-
-# if(${PCL_FOUND})
-#     add_executable(point_cloud_node src/utils/point_cloud_node.cpp)
-
-#     target_link_libraries(point_cloud_node cartesio_collision_support)
-
-#     install(TARGETS point_cloud_node
-#         DESTINATION lib/${PROJECT_NAME})
-# endif()
 
 install(DIRECTORY examples/
     DESTINATION share/${PROJECT_NAME}/examples)

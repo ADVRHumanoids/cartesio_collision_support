@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package format="2">
+<package format="3">
   <name>cartesio_collision_support</name>
   <version>0.0.0</version>
   <description>The cartesio_collision_support package</description>
@@ -13,7 +13,7 @@
   <depend>moveit-core</depend>
   <depend>moveit-ros-planning</depend>
   <depend>moveit-ros-planning-interface</depend>
-
+  <member_of_group>rosidl_interface_packages</member_of_group>'
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

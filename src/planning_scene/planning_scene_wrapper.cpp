@@ -2,6 +2,7 @@
 
 #include <urdf_parser/urdf_parser.h>
 #include <srdfdom/srdf_writer.h>
+#include <xbot2_interface/common/utils.h>
 
 namespace
 {
@@ -20,12 +21,12 @@ public:
     MonitorLockguardWrite(planning_scene_monitor::PlanningSceneMonitorPtr monitor)
     {
         _monitor = monitor;
-        _monitor->lockSceneWrite();
+        // _monitor->lockSceneWrite();
     }
 
     ~MonitorLockguardWrite()
     {
-        _monitor->unlockSceneWrite();
+        // _monitor->unlockSceneWrite();
     }
 
 private:
@@ -48,12 +49,12 @@ public:
     MonitorLockguardRead(planning_scene_monitor::PlanningSceneMonitorPtr monitor)
     {
         _monitor = monitor;
-        _monitor->lockSceneRead();
+        // _monitor->lockSceneRead();
     }
 
     ~MonitorLockguardRead()
     {
-        _monitor->unlockSceneRead();
+        // _monitor->unlockSceneRead();
     }
 
 private:
@@ -67,10 +68,9 @@ namespace XBot { namespace Cartesian { namespace Collision {
 PlanningSceneWrapper::PlanningSceneWrapper(ModelInterface::ConstPtr model,
                                            urdf::ModelConstSharedPtr collision_urdf,
                                            srdf::ModelConstSharedPtr collision_srdf,
-                                           ros::NodeHandle nh):
+                                           rclcpp::Node::SharedPtr node):
     _model(model),
-    _nh(nh),
-    _async_spinner(1, &_queue)
+    _node(node->create_sub_node("planning_scene"))
 {
     // init urdf/srdf strings from model ifc
     std::string urdf_string = _model->getUrdfString();
@@ -79,31 +79,25 @@ PlanningSceneWrapper::PlanningSceneWrapper(ModelInterface::ConstPtr model,
     // get urdf/srdf overrides
     if(collision_urdf)
     {
-        auto tixml = urdf::exportURDF(*collision_urdf);
-        std::stringstream ss;
-        ss << *tixml;
-        urdf_string = ss.str();
+        urdf_string = Utils::urdfToString(*collision_urdf);
     }
 
     if(collision_srdf)
     {
-        srdf::SRDFWriter srdfw;
-        srdfw.initModel(*_model->getUrdf(), *collision_srdf);
-        srdf_string = srdfw.getSRDFString();
+        srdf_string = Utils::srdfToString(*collision_urdf, *collision_srdf);
     }
 
     // create robot model loader
-    robot_model_loader::RobotModelLoader::Options rml_opt(_model->getUrdfString(),
-                                                          _model->getSrdfString());
+    robot_model_loader::RobotModelLoader::Options rml_opt(urdf_string, srdf_string);
 
-    auto rml = std::make_shared<robot_model_loader::RobotModelLoader>(rml_opt);
+    auto rml = std::make_shared<robot_model_loader::RobotModelLoader>(_node, rml_opt);
 
 
     // planning scene monitor automatically updates planning scene from topics
-    _monitor = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(rml);
+    _monitor = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(_node, rml);
 
     // save srdf
-    _srdf.initString(*_model->getUrdf(), srdf_string);
+    _srdf.initString(*rml->getURDF(), srdf_string);
 }
 
 void PlanningSceneWrapper::startMonitor()
@@ -114,13 +108,15 @@ void PlanningSceneWrapper::startMonitor()
     // this subscribes to /planning_scene
     _monitor->startSceneMonitor();
 
+    _monitor->providePlanningSceneService();
+
     // this is somehow different from the scene monitor.. boh
     //    _monitor->startWorldGeometryMonitor();
 
     // this starts monitored planning scene publisher
     _monitor->startPublishingPlanningScene(
                 planning_scene_monitor::PlanningSceneMonitor::UPDATE_SCENE,
-                _nh.resolveName("monitored_planning_scene")
+                "monitored_planning_scene"
                 );
 
     // AllowedCollisionMatrix definition. Entries can be added anywhere in the code simply
@@ -137,24 +133,44 @@ void PlanningSceneWrapper::stopMonitor()
 
 void PlanningSceneWrapper::startGetPlanningSceneServer()
 {
-    ros::NodeHandle nh = _nh;
-    nh.setCallbackQueue(&_queue);
+    // using namespace std::placeholders;
 
-    _get_ps_srv = nh.advertiseService("get_planning_scene",
-                                      &PlanningSceneWrapper::getPlanningScene,
-                                      this);
+    // // create new callback group
+    // auto cbg = _node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
 
-    _async_spinner.start();
+    // // create executor
+    // auto exec = rclcpp::executors::SingleThreadedExecutor::make_shared();
+
+    // _get_ps_srv = _node->create_service<moveit_msgs::srv::GetPlanningScene>(
+    //     "get_planning_scene",
+    //     std::bind(&PlanningSceneWrapper::getPlanningScene, this, _1, _2),
+    //     rclcpp::ServicesQoS(),
+    //     cbg);
+
+    // exec->add_callback_group(cbg, _node->get_node_base_interface());
+
+    // // start async spinner
+    // using namespace std::chrono_literals;
+    // _monitor_thread = std::make_unique<std::thread>(
+    //      [this, exec]()
+    //      {
+    //          for(;;)
+    //          {
+    //             exec->spin_all(1s);
+    //          }
+    //      });
+
+    // _monitor_thread->detach();
 
 }
 
 void PlanningSceneWrapper::update()
 {
     // acquire lock for thread-safe access to the planning scene
-    MonitorLockguardWrite lock_w(_monitor); // RAII-style lock acquisition
+    planning_scene_monitor::LockedPlanningSceneRW ps(_monitor);
 
     // retrieve robot state data struct
-    auto& robot_state = _monitor->getPlanningScene()->getCurrentStateNonConst();
+    auto& robot_state = ps->getCurrentStateNonConst();
 
     // update planning scene from model
     for(const auto& jpair : _model->getUrdf()->joints_)
@@ -231,35 +247,35 @@ void PlanningSceneWrapper::update()
 
 bool PlanningSceneWrapper::checkCollisions() const
 {
-    MonitorLockguardRead lock_r(_monitor);
+    planning_scene_monitor::LockedPlanningSceneRO ps(_monitor);
 
     collision_detection::CollisionRequest collision_request;
 
     collision_detection::CollisionResult collision_result;
 
-    _monitor->getPlanningScene()->checkCollision(collision_request, collision_result);
+    ps->checkCollision(collision_request, collision_result);
 
     return collision_result.collision;
 }
 
 bool PlanningSceneWrapper::checkSelfCollisions() const
 {
-    MonitorLockguardRead lock_r(_monitor);
+    planning_scene_monitor::LockedPlanningSceneRO ps(_monitor);
 
     collision_detection::CollisionRequest collision_request;
     collision_detection::CollisionResult collision_result;
 
-    _monitor->getPlanningScene()->checkSelfCollision(collision_request, collision_result);
+    ps->checkSelfCollision(collision_request, collision_result);
 
     return collision_result.collision;
 }
 
 std::vector<std::string> PlanningSceneWrapper::getCollidingLinks() const
 {
-    MonitorLockguardRead lock_r(_monitor);
+    planning_scene_monitor::LockedPlanningSceneRO ps(_monitor);
 
     std::vector<std::string> links;
-    _monitor->getPlanningScene()->getCollidingLinks(links);
+    ps->getCollidingLinks(links);
 
     return links;
 }
@@ -285,25 +301,26 @@ std::vector<XBot::Chain::ConstPtr> PlanningSceneWrapper::getCollidingChains() co
 }
 
 
-void PlanningSceneWrapper::applyPlanningScene(const moveit_msgs::PlanningScene & scene)
+void PlanningSceneWrapper::applyPlanningScene(const moveit_msgs::msg::PlanningScene & scene)
 {
-    _monitor->updateFrameTransforms();
-    _monitor->newPlanningSceneMessage(scene);
+    planning_scene_monitor::LockedPlanningSceneRW ps(_monitor);
+
+    ps->usePlanningSceneMsg(scene);
 }
 
-bool PlanningSceneWrapper::getPlanningScene(moveit_msgs::GetPlanningScene::Request & req,
-                                            moveit_msgs::GetPlanningScene::Response & res)
+bool PlanningSceneWrapper::getPlanningScene(moveit_msgs::srv::GetPlanningScene::Request::ConstSharedPtr req,
+                                            moveit_msgs::srv::GetPlanningScene::Response::SharedPtr res)
 {
-    if (req.components.components & moveit_msgs::PlanningSceneComponents::TRANSFORMS)
+    if (req->components.components & moveit_msgs::msg::PlanningSceneComponents::TRANSFORMS)
     {
         _monitor->updateFrameTransforms();
     }
 
     planning_scene_monitor::LockedPlanningSceneRO ps(_monitor);
 
-    moveit_msgs::PlanningSceneComponents all_components;
+    moveit_msgs::msg::PlanningSceneComponents all_components;
     all_components.components = UINT_MAX;  // Return all scene components if nothing is specified.
-    ps->getPlanningSceneMsg(res.scene, req.components.components ? req.components : all_components);
+    ps->getPlanningSceneMsg(res->scene, req->components.components ? req->components : all_components);
 
     return true;
 
