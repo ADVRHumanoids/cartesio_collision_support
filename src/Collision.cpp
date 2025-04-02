@@ -281,7 +281,8 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask(bool skip_infeasible_pairs)
 
             tf::poseMsgToEigen(co.pose, w_T_co);
 
-            if(co.operation == co.ADD)
+
+            if(co.operation == co.ADD || co.operation == co.MOVE)
             {
                 for(int i = 0; i < co.primitives.size(); i++)
                 {
@@ -292,6 +293,18 @@ TaskPtr OpenSotCollisionTaskAdapter::constructTask(bool skip_infeasible_pairs)
                     addPrimitiveShape(co.id + "__" + std::to_string(i),
                                       co.primitives[i],
                                       w_T_co * co_T_p);
+                }
+
+                for(int i = 0; i < co.meshes.size(); ++i)
+                {
+                    Eigen::Affine3d co_T_p;
+
+                    tf::poseMsgToEigen(co.mesh_poses[i], co_T_p);
+
+
+                    addMesh(co.id + "__" + std::to_string(i),
+                            co.meshes[i],
+                            w_T_co * co_T_p);
                 }
             }
         }
@@ -323,6 +336,34 @@ OpenSoT::constraints::velocity::CollisionAvoidance::Ptr
 OpenSotCollisionTaskAdapter::getCollisionConstraint()
 {
     return _opensot_coll;
+}
+
+bool OpenSotCollisionTaskAdapter::addMesh(std::string name,
+                                                 shape_msgs::Mesh p,
+                                                 Eigen::Affine3d w_T_p)
+{
+    using Shape = XBot::Collision::Shape;
+
+
+    Shape::MeshRaw mesh_raw;
+
+    for(unsigned int i = 0; i < p.vertices.size(); ++i)
+    {
+        Eigen::Vector3d v;
+        tf::pointMsgToEigen(p.vertices[i], v);
+        mesh_raw.vertices.push_back(v);
+    }
+
+    for(unsigned int i = 0; i < p.triangles.size(); ++i)
+    {
+        Eigen::Vector3i t;
+        t[0] = p.triangles[i].vertex_indices[0];
+        t[1] = p.triangles[i].vertex_indices[1];
+        t[2] = p.triangles[i].vertex_indices[2];
+        mesh_raw.triangles.push_back(t);
+    }
+
+    return _opensot_coll->getCollisionModel().addCollisionShape(name, "world", mesh_raw, w_T_p);
 }
 
 bool OpenSotCollisionTaskAdapter::addPrimitiveShape(std::string name,

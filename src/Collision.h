@@ -252,6 +252,10 @@ private:
                            shape_msgs::SolidPrimitive p,
                            Eigen::Affine3d w_T_p);
 
+    bool addMesh(std::string name,
+                 shape_msgs::Mesh p,
+                 Eigen::Affine3d w_T_p);
+
     CollisionTaskImpl::Ptr _ci_coll;
     Eigen::VectorXd _x;
 
