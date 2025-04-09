@@ -1,6 +1,7 @@
 #include "Collision.h"
 #include <boost/make_shared.hpp>
 #include <OpenSoT/utils/LinkPairDistance.h>
+#include <eigen_conversions/eigen_msg.h>
 
 
 using namespace XBot::Cartesian;
@@ -105,6 +106,84 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
         }
     }
 
+    if(auto n = node["world"])
+    {
+        for(auto obj : n)
+        {
+            moveit_msgs::CollisionObject co;
+            co.pose.orientation.w = 1.0;
+            shape_msgs::SolidPrimitive prim;
+            Eigen::Affine3d co_T_prim;
+            co_T_prim.setIdentity();
+
+            std::string prim_type = obj["type"].as<std::string>();
+            std::string name = obj["name"].as<std::string>();
+
+            if(prim_type == "halfspace")
+            {
+                prim.type = prim.BOX;
+                
+                auto normal_v = obj["normal"].as<std::vector<double>>();
+                Eigen::Vector3d normal(normal_v[0], normal_v[1], normal_v[2]);
+                prim.dimensions = {1000., 1000.0, 1.0};
+                
+                co_T_prim.translation() = -0.5*normal;
+                co_T_prim.linear().col(2) = normal.normalized();
+                co_T_prim.linear().col(0) = -normal.normalized().cross(Eigen::Vector3d::UnitY());
+                co_T_prim.linear().col(1) = normal.normalized().cross(co_T_prim.linear().col(0));
+
+            }
+            // else if(prim_type == "box")
+            // {
+            //     prim.type = prim.BOX;
+            // }
+            // else if(prim_type == "sphere")
+            // {
+            //     prim.type = prim.SPHERE;
+            // }
+            // else if(prim_type == "cylinder")
+            // {
+            //     prim.type = prim.CYLINDER;
+            // }
+            // else if(prim_type == "cone")
+            // {
+            //     prim.type = prim.CONE;
+            // }
+            else
+            {
+                throw std::runtime_error("Unknown primitive type: " + prim_type);
+            }
+
+            Eigen::Affine3d w_T_co;
+            w_T_co.setIdentity();
+
+            if(auto n = obj["position"])
+            {
+                auto pos = n.as<std::vector<double>>();
+                w_T_co.translation() = Eigen::Vector3d(pos[0], pos[1], pos[2]);
+            }
+
+            if(auto n = obj["orientation"])
+            {
+                auto q = n.as<std::vector<double>>();
+                w_T_co.linear() = Eigen::Quaterniond(q[3], q[0], q[1], q[2]).toRotationMatrix();
+            }
+
+            geometry_msgs::Pose prim_pose;
+            tf::poseEigenToMsg(w_T_co * co_T_prim, prim_pose);
+
+            co.primitives = {prim};
+            co.primitive_poses = {prim_pose};
+            co.header.frame_id = "world";
+            co.id = name;
+            co.operation = moveit_msgs::CollisionObject::ADD;
+            
+            psw.collision_objects.push_back(co);
+
+        }
+
+    }
+
 
 }
 
@@ -158,6 +237,8 @@ srdf::ModelConstSharedPtr CollisionTaskImpl::getCollisionSrdf() const
 void CollisionTaskImpl::registerWorldUpdateCallback(WorldUpdateCallback f)
 {
     _world_upd_cb.push_back(f);
+
+    f(psw);
 }
 
 void CollisionTaskImpl::worldUpdated(const moveit_msgs::PlanningSceneWorld& psw)
@@ -220,6 +301,7 @@ ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
     // register world update function
     auto on_world_upd = [this](const moveit_msgs::PlanningSceneWorld& psw)
     {
+        std::cout << "new world coming! \n" << psw << std::endl;
         _opensot_coll->setWorldCollisions(psw);
     };
 

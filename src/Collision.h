@@ -107,6 +107,8 @@ public:
     void setLinkPairDistances(const std::list<LinkPairDistance>& distance_list);
     const std::list<LinkPairDistance>& getLinkPairDistances();
 
+    moveit_msgs::PlanningSceneWorld psw;
+
 private:
 
     std::list<std::pair<std::string, std::string>> _pairs;
