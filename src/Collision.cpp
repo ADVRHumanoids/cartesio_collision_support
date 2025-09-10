@@ -2,6 +2,7 @@
 #include <boost/make_shared.hpp>
 #include <xbot2_interface/common/utils.h>
 #include <tf2_eigen/tf2_eigen.hpp>
+#include <geometric_shapes/shape_operations.h>
 
 using namespace XBot::Cartesian;
 using namespace XBot::Cartesian::collision;
@@ -537,6 +538,7 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
     // add world from yaml
     for(auto& [name, shape] : _ci_coll->getWorldShapes())
     {
+        moveit_msgs::msg::CollisionObject co;
         shape_msgs::msg::SolidPrimitive prim;
         
         auto ShapeVisitor = Overload {
@@ -570,8 +572,21 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
             },
             [&](const XBot::Collision::Shape::Mesh& mesh)
             {
-                // throw unsupported
-                throw std::runtime_error("mesh not supported");
+                // build mesh from filepath
+                auto mesh_ = shapes::createMeshFromResource(mesh.filepath);
+                
+                if(!mesh_)
+                {
+                    throw std::runtime_error("could not load mesh from " + mesh.filepath);
+                }
+
+                shapes::ShapeMsg shape_msg = shape_msgs::msg::Mesh();
+                if(!shapes::constructMsgFromShape(mesh_, shape_msg))
+                {
+                    throw std::runtime_error("could not convert mesh to message");
+                }
+                prim.dimensions.clear();
+                co.meshes = {boost::get<shape_msgs::msg::Mesh>(shape_msg)};
             },
             [&](const XBot::Collision::Shape::Sphere& sp)
             {
@@ -590,12 +605,13 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
 
         geometry_msgs::msg::Pose pose = tf2::toMsg(shape.pose);
 
-        moveit_msgs::msg::CollisionObject co;
+        
         co.header.frame_id = "world";
         co.id = name;
         co.operation = moveit_msgs::msg::CollisionObject::ADD;
         co.primitives = {prim};
         co.primitive_poses = {pose};
+        co.mesh_poses = {pose};
 
         moveit_msgs::msg::PlanningScene ps;
         ps.is_diff = true;
