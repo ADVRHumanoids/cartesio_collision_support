@@ -641,7 +641,9 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
 
     std_msgs::msg::String msg;
 
-    msg.data = XBot::Utils::urdfToString(*_ci_coll->getCollisionUrdf());
+    auto coll_urdf = _ci_coll->getCollisionUrdf() ? _ci_coll->getCollisionUrdf() : _ci_coll->getModel()->getUrdf(); 
+
+    msg.data = XBot::Utils::urdfToString(*coll_urdf);
 
     _coll_urdf_pub->publish(msg);
 
