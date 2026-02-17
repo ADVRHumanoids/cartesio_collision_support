@@ -611,7 +611,11 @@ CollisionRos::CollisionRos(TaskDescription::Ptr task,
         co.operation = moveit_msgs::msg::CollisionObject::ADD;
         co.primitives = {prim};
         co.primitive_poses = {pose};
-        co.mesh_poses = {pose};
+
+        if(co.meshes.size() > 0)
+        {
+            co.mesh_poses = {pose};
+        }
 
         moveit_msgs::msg::PlanningScene ps;
         ps.is_diff = true;
