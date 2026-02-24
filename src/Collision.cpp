@@ -174,12 +174,23 @@ CollisionTaskImpl::CollisionTaskImpl(YAML::Node node,
             WorldShape shape;
 
             shape.pose.setIdentity();
-
+            
             if(auto pose = n["pose"])
             {
                 Eigen::VectorXd pos_quat = yaml_to_eigen(pose, 7);
                 shape.pose.translation() = pos_quat.head<3>();
                 shape.pose.linear() = Eigen::Quaterniond(pos_quat.tail<4>()).toRotationMatrix();
+            }
+
+            if(auto position = n["position"])
+            {
+                shape.pose.translation() = yaml_to_eigen(position, 3);
+            }
+
+            if(auto orientation = n["orientation"])
+            {
+                Eigen::Vector4d quat = yaml_to_eigen(orientation, 4);
+                shape.pose.linear() = Eigen::Quaterniond(quat).toRotationMatrix();
             }
 
             shape.name = name;
