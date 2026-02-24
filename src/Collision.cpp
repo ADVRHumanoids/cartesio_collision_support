@@ -760,7 +760,7 @@ OpenSoT::OptvarHelper::VariableVector OpenSotCollisionConstraintAdapter::getRequ
 
 ConstraintPtr OpenSotCollisionConstraintAdapter::constructConstraint()
 {
-    _task_adapter->constructTask(true);
+    // _task_adapter->constructTask(true);
     return _task_adapter->getCollisionConstraint();
 }
 
